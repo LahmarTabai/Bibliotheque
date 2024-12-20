@@ -189,4 +189,57 @@ public class EmpruntDAO {
         }
         return 0.0;
     }
+    
+    // Lister les emprunts actifs pour un utilisateur donné
+    public void listerEmpruntsActifsParUtilisateur(int userId) {
+        String sql = "SELECT e.EMPRUNT_ID, e.DOC_ID, e.DATE_EMPRUNT, e.DATE_ECHEANCE, d.DOC_TITRE " +
+                     "FROM EMPRUNT e " +
+                     "JOIN DOCUMENTS d ON e.DOC_ID = d.DOC_ID " +
+                     "WHERE e.USER_ID = ? AND e.STATUS = 'Actif'";
+
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setInt(1, userId);
+            ResultSet rs = pstmt.executeQuery();
+
+            System.out.println("Liste des emprunts actifs pour l'utilisateur ID : " + userId);
+            while (rs.next()) {
+                System.out.println("Emprunt ID: " + rs.getInt("EMPRUNT_ID") +
+                                   ", Document: " + rs.getString("DOC_TITRE") +
+                                   ", Date Emprunt: " + rs.getDate("DATE_EMPRUNT") +
+                                   ", Date Échéance: " + rs.getDate("DATE_ECHEANCE"));
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    // Lister tous les emprunts clôturés
+    public void listerEmpruntsClotures() {
+        String sql = "SELECT e.EMPRUNT_ID, e.USER_ID, e.DOC_ID, e.DATE_EMPRUNT, e.DATE_RETOUR, e.FRAIS_RETARD, d.DOC_TITRE " +
+                     "FROM EMPRUNT e " +
+                     "JOIN DOCUMENTS d ON e.DOC_ID = d.DOC_ID " +
+                     "WHERE e.STATUS = 'Clôturé'";
+
+        try (Connection conn = DatabaseConnection.getConnection();
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(sql)) {
+
+            System.out.println("Liste des emprunts clôturés :");
+            while (rs.next()) {
+                System.out.println("Emprunt ID: " + rs.getInt("EMPRUNT_ID") +
+                                   ", Document: " + rs.getString("DOC_TITRE") +
+                                   ", Utilisateur ID: " + rs.getInt("USER_ID") +
+                                   ", Date Emprunt: " + rs.getDate("DATE_EMPRUNT") +
+                                   ", Date Retour: " + rs.getDate("DATE_RETOUR") +
+                                   ", Frais de retard: " + rs.getDouble("FRAIS_RETARD") + " EUR");
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
 }
