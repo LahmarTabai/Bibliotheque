@@ -1,13 +1,22 @@
 import dao.UtilisateurDAO;
+import database.DatabaseConnection;
 import dao.DocumentDAO;
 import dao.EmpruntDAO;
 import entities.Emprunt;
 import entities.Utilisateur;
 import entities.Document;
 
+import java.beans.Statement;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.time.LocalDate;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Scanner;
+
 
 public class Main {
     public static void main(String[] args) {
@@ -150,6 +159,45 @@ public class Main {
             }
         }
     }
+    
+    // Affiche les statistiques sur les emprunts réalisés par chaque utilisateur
+    private static void afficherStatistiquesEmpruntsParUtilisateur(EmpruntDAO empruntDAO) {
+        System.out.println("\n===== Statistiques : Nombre d'emprunts par utilisateur =====");
+        List<Map<String, Object>> empruntsParUtilisateur = empruntDAO.compterEmpruntsParUtilisateur();
+
+        if (empruntsParUtilisateur.isEmpty()) {
+            System.out.println("Aucun emprunt trouvé.");
+        } else {
+            for (Map<String, Object> utilisateurData : empruntsParUtilisateur) {
+                System.out.println("Utilisateur ID : " + utilisateurData.get("USER_ID") +
+                                   ", Nom : " + utilisateurData.get("USER_NOM") +
+                                   ", Prénom : " + utilisateurData.get("USER_PRENOM") +
+                                   ", Nombre d'emprunts : " + utilisateurData.get("TOTAL_EMPRUNTS"));
+            }
+        }
+    }
+
+
+
+    
+    
+    // Affiche les statistiques sur les types de documents empruntés
+    private static void afficherStatistiquesTypesDocuments(EmpruntDAO empruntDAO) {
+        System.out.println("\n===== Statistiques : Types de documents empruntés =====");
+        Map<String, Integer> typesDocumentsEmpruntes = empruntDAO.compterTypesDocumentsEmpruntes();
+
+        if (typesDocumentsEmpruntes.isEmpty()) {
+            System.out.println("Aucun document emprunté.");
+        } else {
+            for (Map.Entry<String, Integer> entry : typesDocumentsEmpruntes.entrySet()) {
+                System.out.println("Type de document : " + entry.getKey() + " - Nombre d'emprunts : " + entry.getValue());
+            }
+        }
+    }
+
+
+
+
 
     
     
@@ -247,6 +295,8 @@ public class Main {
             System.out.println("5. Afficher les documents disponibles");
             System.out.println("6. Voir les emprunts d'un utilisateur spécifique");
             System.out.println("7. Rechercher un document par critères");
+            System.out.println("8. Afficher les emprunts par utilisateur (Stats)");
+            System.out.println("9. Afficher les types de documents les plus empruntés");
             System.out.println("0. Quitter");
 
             System.out.print("Votre choix : ");
@@ -289,6 +339,14 @@ public class Main {
                     
                 case 7: // Rechercher un document par critères
                 	rechercherDocuments(scanner, documentDAO);
+                    break;
+                    
+                case 8:
+                    afficherStatistiquesEmpruntsParUtilisateur(empruntDAO);
+                    break;
+
+                case 9:
+                    afficherStatistiquesTypesDocuments(empruntDAO);
                     break;
 
 

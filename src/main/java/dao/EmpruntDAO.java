@@ -5,6 +5,10 @@ import entities.Emprunt;
 
 import java.sql.*;
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -266,6 +270,70 @@ public class EmpruntDAO {
             System.err.println("Erreur lors de la récupération des emprunts : " + e.getMessage());
         }
     }
+    
+    
+    // Méthode pour compter les emprunts par utilisateur 
+    public List<Map<String, Object>> compterEmpruntsParUtilisateur() {
+        List<Map<String, Object>> empruntsParUtilisateur = new ArrayList<>();
+        String sql = "SELECT u.USER_ID, u.USER_NOM, u.USER_PRENOM, COUNT(e.EMPRUNT_ID) AS TOTAL_EMPRUNTS " +
+                "FROM utilisateur u " +
+                "LEFT JOIN emprunt e ON u.USER_ID = e.USER_ID " +
+                "WHERE u.ROLE = 'USER' " +
+                "GROUP BY u.USER_ID, u.USER_NOM, u.USER_PRENOM " +
+                "ORDER BY TOTAL_EMPRUNTS DESC";
+
+
+        try (Connection conn = DatabaseConnection.getConnection();
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(sql)) {
+
+            while (rs.next()) {
+                Map<String, Object> utilisateurData = new HashMap<>();
+                utilisateurData.put("USER_ID", rs.getInt("USER_ID"));
+                utilisateurData.put("USER_NOM", rs.getString("USER_NOM"));
+                utilisateurData.put("USER_PRENOM", rs.getString("USER_PRENOM"));
+                utilisateurData.put("TOTAL_EMPRUNTS", rs.getInt("TOTAL_EMPRUNTS"));
+                empruntsParUtilisateur.add(utilisateurData);
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+            System.err.println("Erreur lors de la récupération des statistiques des emprunts par utilisateur : " + e.getMessage());
+        }
+
+        return empruntsParUtilisateur;
+    }
+
+    
+    // Méthode pour trouver les types de documents les plus empruntés
+    public Map<String, Integer> compterTypesDocumentsEmpruntes() {
+        Map<String, Integer> typesDocumentsEmpruntes = new HashMap<>();
+        String sql = "SELECT d.DOC_TYPE, COUNT(*) AS TOTAL " +
+	                 "FROM EMPRUNT e " +
+	                 "LEFT JOIN DOCUMENTS d ON e.DOC_ID = d.DOC_ID " +
+	                 "GROUP BY d.DOC_TYPE " +
+	                 "ORDER BY TOTAL DESC";
+//        System.out.println(sql);
+        
+
+
+        try (Connection conn = DatabaseConnection.getConnection();
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(sql)) {
+
+            while (rs.next()) {
+                typesDocumentsEmpruntes.put(rs.getString("DOC_TYPE"), rs.getInt("TOTAL"));
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+            System.err.println("Erreur lors de la récupération des statistiques des types de documents empruntés : " + e.getMessage());
+        }
+
+        return typesDocumentsEmpruntes;
+    }
+
+
 
     // Supprimer un emprunt
     public boolean supprimerEmprunt(int empruntId) {
