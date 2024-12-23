@@ -18,6 +18,17 @@ public class LivreDAO {
         int docId = -1;
 
         try {
+            // Vérifier les données d'entrée
+            if (livre.getTitre() == null || livre.getTitre().isEmpty()) {
+                throw new IllegalArgumentException("Le titre du livre ne peut pas être vide.");
+            }
+            if (livre.getAuteur() == null || livre.getAuteur().isEmpty()) {
+                throw new IllegalArgumentException("L'auteur du livre ne peut pas être vide.");
+            }
+            if (livre.getNbPages() <= 0) {
+                throw new IllegalArgumentException("Le nombre de pages doit être positif.");
+            }
+
             conn = DatabaseConnection.getConnection();
             conn.setAutoCommit(false);
 
@@ -37,6 +48,8 @@ public class LivreDAO {
             if (generatedKeys.next()) {
                 docId = generatedKeys.getInt(1);
                 livre.setId(docId);
+            } else {
+                throw new SQLException("Échec de la récupération de l'ID généré pour le document.");
             }
 
             // Insérer dans LIVRES
@@ -53,18 +66,23 @@ public class LivreDAO {
         } catch (SQLException e) {
             try {
                 if (conn != null) conn.rollback();
+                System.err.println("Erreur : Transaction annulée. " + e.getMessage());
             } catch (SQLException ex) {
-                ex.printStackTrace();
+                System.err.println("Erreur lors du rollback : " + ex.getMessage());
             }
-            e.printStackTrace();
+        } catch (IllegalArgumentException e) {
+            System.err.println("Erreur de validation des données : " + e.getMessage());
         } finally {
             try {
                 if (generatedKeys != null) generatedKeys.close();
                 if (pstmtDocuments != null) pstmtDocuments.close();
                 if (pstmtLivres != null) pstmtLivres.close();
-                if (conn != null) conn.setAutoCommit(true);
+                if (conn != null) {
+                    conn.setAutoCommit(true);
+                    conn.close();
+                }
             } catch (SQLException e) {
-                e.printStackTrace();
+                System.err.println("Erreur lors de la fermeture des ressources : " + e.getMessage());
             }
         }
 

@@ -1,16 +1,20 @@
 package entities;
 
-public abstract class Document {
-    protected int id;
-    protected String titre;
-    protected String auteur;
-    protected String description;
-    protected String datePublication;
-    protected int quantite;
-    protected int quantiteDispo;
+public class Document {
+    private int id;
+    private String titre;
+    private String auteur;
+    private String description;
+    private String datePublication;
+    private int quantite;
+    private int quantiteDispo;
+    private String type;
 
-    // Constructeur
-    public Document(int id, String titre, String auteur, String description, String datePublication, int quantite, int quantiteDispo) {
+    // Constructeur complet
+    public Document(int id, String titre, String auteur, String description, String datePublication, int quantite, int quantiteDispo, String type) {
+        if (quantite < 0 || quantiteDispo < 0) {
+            throw new IllegalArgumentException("Quantité et quantité disponible doivent être positives.");
+        }
         this.id = id;
         this.titre = titre;
         this.auteur = auteur;
@@ -18,9 +22,14 @@ public abstract class Document {
         this.datePublication = datePublication;
         this.quantite = quantite;
         this.quantiteDispo = quantiteDispo;
+        this.type = type;
     }
 
-    // Getters et Setters
+    // Constructeur vide (optionnel)
+    public Document() {
+    }
+
+    // Getters et Setters avec validations
     public int getId() {
         return id;
     }
@@ -34,6 +43,9 @@ public abstract class Document {
     }
 
     public void setTitre(String titre) {
+        if (titre == null || titre.isEmpty()) {
+            throw new IllegalArgumentException("Le titre ne peut pas être vide.");
+        }
         this.titre = titre;
     }
 
@@ -42,6 +54,9 @@ public abstract class Document {
     }
 
     public void setAuteur(String auteur) {
+        if (auteur == null || auteur.isEmpty()) {
+            throw new IllegalArgumentException("L'auteur ne peut pas être vide.");
+        }
         this.auteur = auteur;
     }
 
@@ -58,6 +73,9 @@ public abstract class Document {
     }
 
     public void setDatePublication(String datePublication) {
+        if (datePublication == null || !datePublication.matches("\\d{4}-\\d{2}-\\d{2}")) {
+            throw new IllegalArgumentException("La date de publication doit être au format AAAA-MM-JJ.");
+        }
         this.datePublication = datePublication;
     }
 
@@ -66,6 +84,9 @@ public abstract class Document {
     }
 
     public void setQuantite(int quantite) {
+        if (quantite < 0) {
+            throw new IllegalArgumentException("La quantité ne peut pas être négative.");
+        }
         this.quantite = quantite;
     }
 
@@ -74,13 +95,20 @@ public abstract class Document {
     }
 
     public void setQuantiteDispo(int quantiteDispo) {
+        if (quantiteDispo < 0) {
+            throw new IllegalArgumentException("La quantité disponible ne peut pas être négative.");
+        }
         this.quantiteDispo = quantiteDispo;
     }
 
-    // Méthode abstraite à implémenter dans les sous-classes
-    public abstract void afficherDetails();
+    public String getType() {
+        return type;
+    }
 
-    // Méthode toString pour afficher les détails d'un document
+    public void setType(String type) {
+        this.type = type;
+    }
+
     @Override
     public String toString() {
         return "Document{" +
@@ -91,6 +119,7 @@ public abstract class Document {
                 ", datePublication='" + datePublication + '\'' +
                 ", quantite=" + quantite +
                 ", quantiteDispo=" + quantiteDispo +
+                ", type='" + type + '\'' +
                 '}';
     }
 }

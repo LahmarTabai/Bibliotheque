@@ -6,6 +6,7 @@ import entities.Utilisateur;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Pattern;
 
 public class UtilisateurDAO {
 
@@ -20,13 +21,18 @@ public class UtilisateurDAO {
             return rs.next(); // Retourne true si l'email existe
 
         } catch (SQLException e) {
-            e.printStackTrace();
+            System.err.println("Erreur lors de la vérification de l'existence de l'utilisateur : " + e.getMessage());
             return false;
         }
     }
 
     // Ajouter un nouvel utilisateur avec ROLE et PASSWORD
     public int ajouterUtilisateur(Utilisateur utilisateur) {
+        if (!validerEmail(utilisateur.getEmail())) {
+            System.out.println("Erreur : Email invalide.");
+            return -1;
+        }
+
         if (utilisateurExiste(utilisateur.getEmail())) {
             System.out.println("Erreur : L'utilisateur avec l'email " + utilisateur.getEmail() + " existe déjà.");
             return -1; // Indiquer que l'utilisateur existe déjà
@@ -70,13 +76,13 @@ public class UtilisateurDAO {
 
             if (rs.next()) {
                 return new Utilisateur(
-                    rs.getInt("USER_ID"),
-                    rs.getString("USER_NOM"),
-                    rs.getString("USER_PRENOM"),
-                    rs.getString("USER_EMAIL"),
-                    rs.getString("USER_TEL"),
-                    rs.getString("ROLE"),  // Charger le rôle
-                    rs.getString("PASSWORD") // Charger le mot de passe
+                        rs.getInt("USER_ID"),
+                        rs.getString("USER_NOM"),
+                        rs.getString("USER_PRENOM"),
+                        rs.getString("USER_EMAIL"),
+                        rs.getString("USER_TEL"),
+                        rs.getString("ROLE"),  // Charger le rôle
+                        null // Ne pas charger le mot de passe pour des raisons de sécurité
                 );
             } else {
                 System.out.println("Email ou mot de passe incorrect.");
@@ -84,7 +90,7 @@ public class UtilisateurDAO {
             }
 
         } catch (SQLException e) {
-            e.printStackTrace();
+            System.err.println("Erreur lors de l'authentification : " + e.getMessage());
             return null;
         }
     }
@@ -100,13 +106,13 @@ public class UtilisateurDAO {
 
             if (rs.next()) {
                 return new Utilisateur(
-                    rs.getInt("USER_ID"),
-                    rs.getString("USER_NOM"),
-                    rs.getString("USER_PRENOM"),
-                    rs.getString("USER_EMAIL"),
-                    rs.getString("USER_TEL"),
-                    rs.getString("ROLE"), // Charger le rôle
-                    rs.getString("PASSWORD") // Charger le mot de passe
+                        rs.getInt("USER_ID"),
+                        rs.getString("USER_NOM"),
+                        rs.getString("USER_PRENOM"),
+                        rs.getString("USER_EMAIL"),
+                        rs.getString("USER_TEL"),
+                        rs.getString("ROLE"),
+                        null // Ne pas charger le mot de passe
                 );
             } else {
                 System.out.println("Utilisateur non trouvé avec l'ID : " + userId);
@@ -114,7 +120,7 @@ public class UtilisateurDAO {
             }
 
         } catch (SQLException e) {
-            e.printStackTrace();
+            System.err.println("Erreur lors de la récupération de l'utilisateur : " + e.getMessage());
             return null;
         }
     }
@@ -143,7 +149,7 @@ public class UtilisateurDAO {
             }
 
         } catch (SQLException e) {
-            e.printStackTrace();
+            System.err.println("Erreur lors de la modification de l'utilisateur : " + e.getMessage());
             return false;
         }
     }
@@ -165,12 +171,11 @@ public class UtilisateurDAO {
             }
 
         } catch (SQLException e) {
-            e.printStackTrace();
+            System.err.println("Erreur lors de la suppression de l'utilisateur : " + e.getMessage());
             return false;
         }
     }
 
-   
     // Lister tous les utilisateurs
     public List<Utilisateur> listerTousLesUtilisateurs() {
         List<Utilisateur> utilisateurs = new ArrayList<>();
@@ -183,20 +188,22 @@ public class UtilisateurDAO {
             System.out.println("\nListe des utilisateurs :");
             while (rs.next()) {
                 Utilisateur utilisateur = new Utilisateur(
-                    rs.getInt("USER_ID"),
-                    rs.getString("USER_NOM"),
-                    rs.getString("USER_PRENOM"),
-                    rs.getString("USER_EMAIL"),
-                    rs.getString("USER_TEL"),
-                    rs.getString("ROLE"),
-                    rs.getString("PASSWORD")
+                        rs.getInt("USER_ID"),
+                        rs.getString("USER_NOM"),
+                        rs.getString("USER_PRENOM"),
+                        rs.getString("USER_EMAIL"),
+                        rs.getString("USER_TEL"),
+                        rs.getString("ROLE"),
+                        null // Ne pas afficher les mots de passe
                 );
                 utilisateurs.add(utilisateur);
 
-                // Afficher les détails de chaque utilisateur
-                System.out.println("ID : " + utilisateur.getId() + ", Nom : " + utilisateur.getNom() +
-                        ", Prénom : " + utilisateur.getPrenom() + ", Email : " + utilisateur.getEmail() +
-                        ", Téléphone : " + utilisateur.getTelephone() + ", Rôle : " + utilisateur.getRole());
+                System.out.println("ID : " + utilisateur.getId() +
+                        ", Nom : " + utilisateur.getNom() +
+                        ", Prénom : " + utilisateur.getPrenom() +
+                        ", Email : " + utilisateur.getEmail() +
+                        ", Téléphone : " + utilisateur.getTelephone() +
+                        ", Rôle : " + utilisateur.getRole());
             }
 
             if (utilisateurs.isEmpty()) {
@@ -204,9 +211,15 @@ public class UtilisateurDAO {
             }
 
         } catch (SQLException e) {
-            e.printStackTrace();
+            System.err.println("Erreur lors de la récupération des utilisateurs : " + e.getMessage());
         }
         return utilisateurs;
     }
 
+    // Valider l'email
+    private boolean validerEmail(String email) {
+        String emailRegex = "^[A-Za-z0-9+_.-]+@(.+)$";
+        Pattern pattern = Pattern.compile(emailRegex);
+        return pattern.matcher(email).matches();
+    }
 }

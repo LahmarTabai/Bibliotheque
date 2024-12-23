@@ -2,13 +2,15 @@ package dao;
 
 import database.DatabaseConnection;
 import entities.Emprunt;
-import entities.Utilisateur;
 
 import java.sql.*;
 import java.time.LocalDate;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class EmpruntDAO {
 
+    private static final Logger LOGGER = Logger.getLogger(EmpruntDAO.class.getName());
     private static final double TAUX_JOUR = 0.5;
     private static final double TAUX_MULTIMEDIA = 1.0;
     private static final double TAUX_MAGAZINE_SUPP = 2.0;
@@ -16,7 +18,7 @@ public class EmpruntDAO {
     // Ajouter un nouvel emprunt avec contrôle des règles métier
     public boolean ajouterEmprunt(Emprunt emprunt, String docType) {
         if (!peutEmprunter(emprunt.getUtilisateur().getId(), docType)) {
-            System.out.println("Règles métier non respectées : L'utilisateur ne peut pas emprunter ce document.");
+            LOGGER.warning("L'utilisateur ne peut pas emprunter ce document : " + docType);
             return false;
         }
 
@@ -27,7 +29,7 @@ public class EmpruntDAO {
              PreparedStatement pstmtInsert = conn.prepareStatement(sqlInsert);
              PreparedStatement pstmtUpdate = conn.prepareStatement(sqlUpdateQuantite)) {
 
-            conn.setAutoCommit(false); // Début de la transaction
+            conn.setAutoCommit(false);
 
             // Ajouter l'emprunt
             pstmtInsert.setInt(1, emprunt.getUtilisateur().getId());
@@ -36,34 +38,21 @@ public class EmpruntDAO {
             pstmtInsert.setDate(4, Date.valueOf(emprunt.getDateEcheance()));
             pstmtInsert.executeUpdate();
 
-            // Diminuer la quantité disponible
+            // Réduire la quantité disponible
             pstmtUpdate.setInt(1, emprunt.getDocumentId());
             int rows = pstmtUpdate.executeUpdate();
             if (rows == 0) {
-                throw new SQLException("Erreur : Quantité insuffisante pour le document ID : " + emprunt.getDocumentId());
+                conn.rollback();
+                throw new SQLException("Quantité insuffisante pour le document ID : " + emprunt.getDocumentId());
             }
 
-            conn.commit(); // Valider la transaction
-            System.out.println("Emprunt ajouté avec succès !");
+            conn.commit();
+            LOGGER.info("Emprunt ajouté avec succès : " + emprunt);
             return true;
 
         } catch (SQLException e) {
-            try {
-                System.err.println("Erreur lors de l'ajout de l'emprunt, rollback effectué.");
-                if (DatabaseConnection.getConnection() != null) {
-                    DatabaseConnection.getConnection().rollback();
-                }
-            } catch (SQLException rollbackEx) {
-                rollbackEx.printStackTrace();
-            }
-            e.printStackTrace();
+            LOGGER.log(Level.SEVERE, "Erreur lors de l'ajout de l'emprunt : " + emprunt, e);
             return false;
-        } finally {
-            try {
-                DatabaseConnection.getConnection().setAutoCommit(true); // Assurez-vous que l'auto-commit est rétabli
-            } catch (SQLException ex) {
-                ex.printStackTrace();
-            }
         }
     }
 
@@ -82,78 +71,58 @@ public class EmpruntDAO {
             pstmtTotal.setInt(1, userId);
             ResultSet rsTotal = pstmtTotal.executeQuery();
             if (rsTotal.next() && rsTotal.getInt("total") >= 4) {
-                System.out.println("Erreur : Limite de 4 emprunts atteinte pour l'utilisateur ID : " + userId);
+                LOGGER.warning("Limite de 4 emprunts atteinte pour l'utilisateur ID : " + userId);
                 return false;
             }
 
-            // Vérifier si un document de ce type est déjà emprunté
+            // Vérifier les emprunts par type de document
             pstmtType.setInt(1, userId);
             pstmtType.setString(2, docType);
             ResultSet rsType = pstmtType.executeQuery();
             if (rsType.next() && rsType.getInt("count") >= 1) {
-                System.out.println("Erreur : L'utilisateur a déjà emprunté un document de type : " + docType);
+                LOGGER.warning("L'utilisateur a déjà emprunté un document de type : " + docType);
                 return false;
             }
 
             return true;
 
         } catch (SQLException e) {
-            e.printStackTrace();
+            LOGGER.log(Level.SEVERE, "Erreur lors de la validation des emprunts pour l'utilisateur ID : " + userId, e);
             return false;
         }
     }
 
     // Retourner un document avec mise à jour des quantités et calcul des frais de retard
     public void retournerDocument(int empruntId, int docId, LocalDate dateRetour, String docType, int dureeDocument) {
-    String sqlUpdateEmprunt = "UPDATE EMPRUNT SET DATE_RETOUR = ?, FRAIS_RETARD = ?, STATUS = 'Clôturé' WHERE EMPRUNT_ID = ?";
-    String sqlUpdateQuantite = "UPDATE DOCUMENTS SET DOC_QUANTITE_DISPO = DOC_QUANTITE_DISPO + 1 WHERE DOC_ID = ?";
+        String sqlUpdateEmprunt = "UPDATE EMPRUNT SET DATE_RETOUR = ?, FRAIS_RETARD = ?, STATUS = 'Cloturee' WHERE EMPRUNT_ID = ?";
+        String sqlUpdateQuantite = "UPDATE DOCUMENTS SET DOC_QUANTITE_DISPO = DOC_QUANTITE_DISPO + 1 WHERE DOC_ID = ?";
 
-    Connection conn = null;
-
-    try {
-        conn = DatabaseConnection.getConnection();
-        conn.setAutoCommit(false);
-
-        try (PreparedStatement pstmtEmprunt = conn.prepareStatement(sqlUpdateEmprunt);
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement pstmtEmprunt = conn.prepareStatement(sqlUpdateEmprunt);
              PreparedStatement pstmtQuantite = conn.prepareStatement(sqlUpdateQuantite)) {
 
             LocalDate dateEcheance = getDateEcheance(empruntId);
             double fraisRetard = calculerFraisRetard(dateRetour, dateEcheance, docType, dureeDocument);
 
-            // Mettre à jour l'emprunt avec les frais de retard
+            conn.setAutoCommit(false);
+
+            // Mettre à jour l'emprunt
             pstmtEmprunt.setDate(1, Date.valueOf(dateRetour));
             pstmtEmprunt.setDouble(2, fraisRetard);
             pstmtEmprunt.setInt(3, empruntId);
             pstmtEmprunt.executeUpdate();
 
-            // Réaugmenter la quantité disponible
+            // Augmenter la quantité disponible
             pstmtQuantite.setInt(1, docId);
             pstmtQuantite.executeUpdate();
 
             conn.commit();
-            System.out.println("Document retourné avec succès. Frais de retard : " + fraisRetard + " EUR");
-        }
-    } catch (SQLException e) {
-        try {
-            if (conn != null) {
-                conn.rollback();
-                System.err.println("Erreur lors du retour du document, rollback effectué.");
-            }
-        } catch (SQLException rollbackEx) {
-            rollbackEx.printStackTrace();
-        }
-        e.printStackTrace();
-    } finally {
-        try {
-            if (conn != null) {
-                conn.setAutoCommit(true);
-                conn.close(); // Fermer la connexion proprement
-            }
-        } catch (SQLException ex) {
-            ex.printStackTrace();
+            LOGGER.info("Document retourné avec succès. Frais de retard : " + fraisRetard);
+
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Erreur lors du retour du document ID : " + docId, e);
         }
     }
-}
 
     // Obtenir la date d'échéance pour un emprunt
     private LocalDate getDateEcheance(int empruntId) {
@@ -168,7 +137,7 @@ public class EmpruntDAO {
             }
 
         } catch (SQLException e) {
-            e.printStackTrace();
+            LOGGER.log(Level.SEVERE, "Erreur lors de la récupération de la date d'échéance pour l'emprunt ID : " + empruntId, e);
         }
         return LocalDate.now();
     }
@@ -185,12 +154,15 @@ public class EmpruntDAO {
                     return TAUX_JOUR * joursRetard + TAUX_MAGAZINE_SUPP;
                 case "Multimédia":
                     return TAUX_MULTIMEDIA * dureeDocument + TAUX_JOUR * joursRetard;
+                default:
+                    return 0.0;
             }
         }
         return 0.0;
     }
-    
-    // Lister les emprunts actifs pour un utilisateur donné
+
+
+    // Lister les emprunts actifs pour un utilisateur
     public void listerEmpruntsActifsParUtilisateur(int userId) {
         String sql = "SELECT e.EMPRUNT_ID, e.DOC_ID, e.DATE_EMPRUNT, e.DATE_ECHEANCE, d.DOC_TITRE " +
                      "FROM EMPRUNT e " +
@@ -212,34 +184,110 @@ public class EmpruntDAO {
             }
 
         } catch (SQLException e) {
-            e.printStackTrace();
+            LOGGER.log(Level.SEVERE, "Erreur lors de la récupération des emprunts actifs pour l'utilisateur ID : " + userId, e);
         }
     }
 
-    // Lister tous les emprunts clôturés
-    public void listerEmpruntsClotures() {
-        String sql = "SELECT e.EMPRUNT_ID, e.USER_ID, e.DOC_ID, e.DATE_EMPRUNT, e.DATE_RETOUR, e.FRAIS_RETARD, d.DOC_TITRE " +
+    // Lister les emprunts actifs
+    public void listerEmpruntsActifs() {
+        String sql = "SELECT e.EMPRUNT_ID, e.USER_ID, e.DOC_ID, e.DATE_EMPRUNT, e.DATE_ECHEANCE, d.DOC_TITRE " +
                      "FROM EMPRUNT e " +
                      "JOIN DOCUMENTS d ON e.DOC_ID = d.DOC_ID " +
-                     "WHERE e.STATUS = 'Clôturé'";
+                     "WHERE e.STATUS = 'Actif'";
 
         try (Connection conn = DatabaseConnection.getConnection();
              Statement stmt = conn.createStatement();
              ResultSet rs = stmt.executeQuery(sql)) {
 
-            System.out.println("Liste des emprunts clôturés :");
+            System.out.println("\nListe des emprunts actifs :");
             while (rs.next()) {
                 System.out.println("Emprunt ID: " + rs.getInt("EMPRUNT_ID") +
-                                   ", Document: " + rs.getString("DOC_TITRE") +
                                    ", Utilisateur ID: " + rs.getInt("USER_ID") +
+                                   ", Document: " + rs.getString("DOC_TITRE") +
                                    ", Date Emprunt: " + rs.getDate("DATE_EMPRUNT") +
-                                   ", Date Retour: " + rs.getDate("DATE_RETOUR") +
-                                   ", Frais de retard: " + rs.getDouble("FRAIS_RETARD") + " EUR");
+                                   ", Date Échéance: " + rs.getDate("DATE_ECHEANCE"));
             }
 
         } catch (SQLException e) {
-            e.printStackTrace();
+            LOGGER.log(Level.SEVERE, "Erreur lors de la récupération des emprunts actifs", e);
         }
     }
 
+    // Lister les emprunts clôturés
+    public void listerEmpruntsClotures() {
+        String sql = "SELECT e.EMPRUNT_ID, e.USER_ID, e.DOC_ID, e.DATE_EMPRUNT, e.DATE_RETOUR, e.FRAIS_RETARD, d.DOC_TITRE " +
+                     "FROM EMPRUNT e " +
+                     "JOIN DOCUMENTS d ON e.DOC_ID = d.DOC_ID " +
+                     "WHERE e.STATUS = 'Cloturee'";
+
+        try (Connection conn = DatabaseConnection.getConnection();
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(sql)) {
+
+            System.out.println("\nListe des emprunts clôturés :");
+            while (rs.next()) {
+                System.out.println("Emprunt ID: " + rs.getInt("EMPRUNT_ID") +
+                                   ", Utilisateur ID: " + rs.getInt("USER_ID") +
+                                   ", Document: " + rs.getString("DOC_TITRE") +
+                                   ", Date Emprunt: " + rs.getDate("DATE_EMPRUNT") +
+                                   ", Date Retour: " + rs.getDate("DATE_RETOUR") +
+                                   ", Frais de Retard: " + rs.getDouble("FRAIS_RETARD") + " EUR");
+            }
+
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Erreur lors de la récupération des emprunts clôturés", e);
+        }
+    }
+    
+    
+    // Méthode pour lister les emprunts d'un utilisateur spécifique
+    public void listerEmpruntsParUtilisateur(int userId) {
+        String sql = "SELECT e.EMPRUNT_ID, e.DOC_ID, e.DATE_EMPRUNT, e.DATE_ECHEANCE, e.STATUS, d.DOC_TITRE " +
+                     "FROM EMPRUNT e " +
+                     "JOIN DOCUMENTS d ON e.DOC_ID = d.DOC_ID " +
+                     "WHERE e.USER_ID = ?";
+
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setInt(1, userId);
+            ResultSet rs = pstmt.executeQuery();
+
+            System.out.println("\n===== Emprunts de l'utilisateur ID : " + userId + " =====");
+            while (rs.next()) {
+                System.out.println("Emprunt ID : " + rs.getInt("EMPRUNT_ID") +
+                                   ", Document : " + rs.getString("DOC_TITRE") +
+                                   ", Date d'emprunt : " + rs.getDate("DATE_EMPRUNT") +
+                                   ", Date d'échéance : " + rs.getDate("DATE_ECHEANCE") +
+                                   ", Statut : " + rs.getString("STATUS"));
+            }
+
+        } catch (SQLException e) {
+            System.err.println("Erreur lors de la récupération des emprunts : " + e.getMessage());
+        }
+    }
+
+    // Supprimer un emprunt
+    public boolean supprimerEmprunt(int empruntId) {
+        String sql = "DELETE FROM EMPRUNT WHERE EMPRUNT_ID = ?";
+
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setInt(1, empruntId);
+            int rowsDeleted = pstmt.executeUpdate();
+
+            if (rowsDeleted > 0) {
+                LOGGER.info("Emprunt supprimé avec succès !");
+                return true;
+            } else {
+                LOGGER.warning("Erreur : Emprunt non trouvé.");
+                return false;
+            }
+
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Erreur lors de la suppression de l'emprunt", e);
+            return false;
+        }
+    }
 }

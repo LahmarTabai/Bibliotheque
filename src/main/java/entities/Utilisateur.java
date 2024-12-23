@@ -1,13 +1,13 @@
 package entities;
 
 public class Utilisateur {
-    private int id; // ID utilisateur
-    private String nom; // Nom
-    private String prenom; // Prénom
-    private String email; // Email
-    private String telephone; // Téléphone
-    private String role; // Rôle (ADMIN ou USER)
-    private String password; // Mot de passe
+    private int id;
+    private String nom;
+    private String prenom;
+    private String email;
+    private String telephone;
+    private String role;
+    private String password;
 
     // Constructeur complet
     public Utilisateur(int id, String nom, String prenom, String email, String telephone, String role, String password) {
@@ -18,6 +18,10 @@ public class Utilisateur {
         this.telephone = telephone;
         this.role = role;
         this.password = password;
+    }
+
+    // Constructeur vide (optionnel)
+    public Utilisateur() {
     }
 
     // Getters et setters
@@ -50,6 +54,9 @@ public class Utilisateur {
     }
 
     public void setEmail(String email) {
+        if (email == null || !email.matches("^[A-Za-z0-9+_.-]+@(.+)$")) {
+            throw new IllegalArgumentException("Adresse email invalide.");
+        }
         this.email = email;
     }
 
@@ -58,6 +65,9 @@ public class Utilisateur {
     }
 
     public void setTelephone(String telephone) {
+        if (telephone != null && !telephone.matches("\\d+")) {
+            throw new IllegalArgumentException("Numéro de téléphone invalide : uniquement des chiffres.");
+        }
         this.telephone = telephone;
     }
 

@@ -18,8 +18,22 @@ public class MagazineDAO {
         int docId = -1;
 
         try {
+            // Vérification des données d'entrée
+            if (magazine.getTitre() == null || magazine.getTitre().isEmpty()) {
+                throw new IllegalArgumentException("Le titre du magazine ne peut pas être vide.");
+            }
+            if (magazine.getAuteur() == null || magazine.getAuteur().isEmpty()) {
+                throw new IllegalArgumentException("L'auteur du magazine ne peut pas être vide.");
+            }
+            if (magazine.getQuantite() <= 0 || magazine.getQuantiteDispo() < 0) {
+                throw new IllegalArgumentException("Les quantités doivent être positives.");
+            }
+            if (magazine.getNumeroParution() <= 0) {
+                throw new IllegalArgumentException("Le numéro de parution doit être positif.");
+            }
+
             conn = DatabaseConnection.getConnection();
-            conn.setAutoCommit(false);
+            conn.setAutoCommit(false); // Début de la transaction
 
             // Insérer dans DOCUMENTS
             String sqlDocuments = "INSERT INTO DOCUMENTS (DOC_TITRE, DOC_AUTEUR, DOC_DESCRIPTION, DOC_DATE_PUBLICATION, DOC_QUANTITE, DOC_QUANTITE_DISPO, DOC_TYPE) VALUES (?, ?, ?, ?, ?, ?, 'Magazine')";
@@ -37,6 +51,8 @@ public class MagazineDAO {
             if (generatedKeys.next()) {
                 docId = generatedKeys.getInt(1);
                 magazine.setId(docId);
+            } else {
+                throw new SQLException("Échec de la récupération de l'ID généré pour le document.");
             }
 
             // Insérer dans MAGAZINES
@@ -48,24 +64,32 @@ public class MagazineDAO {
             pstmtMagazines.setString(4, magazine.getEditeur());
             pstmtMagazines.executeUpdate();
 
-            conn.commit();
+            conn.commit(); // Valider la transaction
             System.out.println("Magazine ajouté avec succès, ID : " + docId);
 
         } catch (SQLException e) {
             try {
-                if (conn != null) conn.rollback();
-            } catch (SQLException ex) {
-                ex.printStackTrace();
+                if (conn != null) {
+                    conn.rollback(); // Annuler la transaction en cas d'erreur
+                    System.err.println("Transaction annulée en raison d'une erreur.");
+                }
+            } catch (SQLException rollbackEx) {
+                System.err.println("Erreur lors de l'annulation de la transaction : " + rollbackEx.getMessage());
             }
-            e.printStackTrace();
+            System.err.println("Erreur SQL : " + e.getMessage());
+        } catch (IllegalArgumentException e) {
+            System.err.println("Erreur de validation : " + e.getMessage());
         } finally {
             try {
                 if (generatedKeys != null) generatedKeys.close();
                 if (pstmtDocuments != null) pstmtDocuments.close();
                 if (pstmtMagazines != null) pstmtMagazines.close();
-                if (conn != null) conn.setAutoCommit(true);
+                if (conn != null) {
+                    conn.setAutoCommit(true); // Rétablir le mode auto-commit
+                    conn.close(); // Fermer la connexion
+                }
             } catch (SQLException e) {
-                e.printStackTrace();
+                System.err.println("Erreur lors de la fermeture des ressources : " + e.getMessage());
             }
         }
 

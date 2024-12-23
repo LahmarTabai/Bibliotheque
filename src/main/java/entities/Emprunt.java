@@ -4,52 +4,48 @@ import java.time.LocalDate;
 
 public class Emprunt {
     private int id;
-    private int userId;       // Référence vers un utilisateur (ID)
-    private int documentId;   // Référence vers un document
+    private Utilisateur utilisateur;
+    private int documentId;
     private LocalDate dateEmprunt;
-    private LocalDate dateRetour;
     private LocalDate dateEcheance;
+    private LocalDate dateRetour;
     private double fraisRetard;
-    private String status;    // Par exemple : "Actif", "Clôturé"
+    private String status; // Statut : "Actif" ou "Clôturé"
 
-    private Utilisateur utilisateur; // Liaison vers l'objet Utilisateur
-
-    // Constructeur complet sans Utilisateur (pour compatibilité avec l’ancien code)
-    public Emprunt(int id, int userId, int documentId, LocalDate dateEmprunt, LocalDate dateEcheance, LocalDate dateRetour, double fraisRetard, String status) {
+    // Constructeur complet (sans dateRetour ni fraisRetard)
+    public Emprunt(int id, Utilisateur utilisateur, int documentId, LocalDate dateEmprunt, LocalDate dateEcheance, String status) {
+        if (dateEmprunt == null || dateEcheance == null || status == null || utilisateur == null) {
+            throw new IllegalArgumentException("Les champs dateEmprunt, dateEcheance, utilisateur et status sont obligatoires.");
+        }
+        if (dateEcheance.isBefore(dateEmprunt)) {
+            throw new IllegalArgumentException("La date d'échéance ne peut pas être antérieure à la date d'emprunt.");
+        }
         this.id = id;
-        this.userId = userId;
+        this.utilisateur = utilisateur;
         this.documentId = documentId;
         this.dateEmprunt = dateEmprunt;
         this.dateEcheance = dateEcheance;
-        this.dateRetour = dateRetour;
-        this.fraisRetard = fraisRetard;
         this.status = status;
     }
 
-    // Nouveau constructeur avec Utilisateur
+    // Constructeur pour un emprunt retourné (avec date de retour et frais de retard)
     public Emprunt(int id, Utilisateur utilisateur, int documentId, LocalDate dateEmprunt, LocalDate dateEcheance, LocalDate dateRetour, double fraisRetard, String status) {
-        this.id = id;
-        this.utilisateur = utilisateur;
-        this.userId = utilisateur.getId(); // On initialise userId à partir de l'objet Utilisateur
-        this.documentId = documentId;
-        this.dateEmprunt = dateEmprunt;
-        this.dateEcheance = dateEcheance;
+        this(id, utilisateur, documentId, dateEmprunt, dateEcheance, status);
+        if (dateRetour != null && dateRetour.isBefore(dateEcheance)) {
+            throw new IllegalArgumentException("La date de retour ne peut pas être antérieure à la date d'échéance.");
+        }
+        if (fraisRetard < 0) {
+            throw new IllegalArgumentException("Les frais de retard ne peuvent pas être négatifs.");
+        }
         this.dateRetour = dateRetour;
         this.fraisRetard = fraisRetard;
-        this.status = status;
     }
 
-    // Getters et Setters pour Utilisateur
-    public Utilisateur getUtilisateur() {
-        return utilisateur;
+    // Constructeur vide (optionnel)
+    public Emprunt() {
     }
 
-    public void setUtilisateur(Utilisateur utilisateur) {
-        this.utilisateur = utilisateur;
-        this.userId = utilisateur.getId(); // Mettre à jour userId pour garantir la cohérence
-    }
-
-    // Autres Getters et Setters existants
+    // Getters et setters avec validations
     public int getId() {
         return id;
     }
@@ -58,12 +54,15 @@ public class Emprunt {
         this.id = id;
     }
 
-    public int getUserId() {
-        return userId;
+    public Utilisateur getUtilisateur() {
+        return utilisateur;
     }
 
-    public void setUserId(int userId) {
-        this.userId = userId;
+    public void setUtilisateur(Utilisateur utilisateur) {
+        if (utilisateur == null) {
+            throw new IllegalArgumentException("L'utilisateur ne peut pas être null.");
+        }
+        this.utilisateur = utilisateur;
     }
 
     public int getDocumentId() {
@@ -79,15 +78,10 @@ public class Emprunt {
     }
 
     public void setDateEmprunt(LocalDate dateEmprunt) {
+        if (dateEmprunt == null) {
+            throw new IllegalArgumentException("La date d'emprunt ne peut pas être null.");
+        }
         this.dateEmprunt = dateEmprunt;
-    }
-
-    public LocalDate getDateRetour() {
-        return dateRetour;
-    }
-
-    public void setDateRetour(LocalDate dateRetour) {
-        this.dateRetour = dateRetour;
     }
 
     public LocalDate getDateEcheance() {
@@ -95,7 +89,21 @@ public class Emprunt {
     }
 
     public void setDateEcheance(LocalDate dateEcheance) {
+        if (dateEcheance == null || dateEcheance.isBefore(this.dateEmprunt)) {
+            throw new IllegalArgumentException("La date d'échéance est invalide.");
+        }
         this.dateEcheance = dateEcheance;
+    }
+
+    public LocalDate getDateRetour() {
+        return dateRetour;
+    }
+
+    public void setDateRetour(LocalDate dateRetour) {
+        if (dateRetour != null && dateRetour.isBefore(this.dateEcheance)) {
+            throw new IllegalArgumentException("La date de retour est invalide.");
+        }
+        this.dateRetour = dateRetour;
     }
 
     public double getFraisRetard() {
@@ -103,6 +111,9 @@ public class Emprunt {
     }
 
     public void setFraisRetard(double fraisRetard) {
+        if (fraisRetard < 0) {
+            throw new IllegalArgumentException("Les frais de retard ne peuvent pas être négatifs.");
+        }
         this.fraisRetard = fraisRetard;
     }
 
@@ -111,18 +122,23 @@ public class Emprunt {
     }
 
     public void setStatus(String status) {
+        if (status == null || (!status.equals("Actif") && !status.equals("Cloturee"))) {
+            throw new IllegalArgumentException("Le statut doit être 'Actif' ou 'Clôturé'.");
+        }
         this.status = status;
     }
 
-    // Méthode pour afficher les détails de l'emprunt
-    public void afficherDetails() {
-        System.out.println("Emprunt - ID: " + id + 
-                           ", Utilisateur: " + (utilisateur != null ? utilisateur.getNom() + " " + utilisateur.getPrenom() : "ID: " + userId) +
-                           ", Document ID: " + documentId +
-                           ", Date Emprunt: " + dateEmprunt + 
-                           ", Date Échéance: " + dateEcheance +
-                           ", Date Retour: " + (dateRetour != null ? dateRetour : "Non retourné") +
-                           ", Frais de retard: " + fraisRetard + 
-                           ", Status: " + status);
+    @Override
+    public String toString() {
+        return "Emprunt{" +
+                "id=" + id +
+                ", utilisateur=" + utilisateur +
+                ", documentId=" + documentId +
+                ", dateEmprunt=" + dateEmprunt +
+                ", dateEcheance=" + dateEcheance +
+                (dateRetour != null ? ", dateRetour=" + dateRetour : "") +
+                (fraisRetard > 0 ? ", fraisRetard=" + fraisRetard : "") +
+                ", status='" + status + '\'' +
+                '}';
     }
 }
