@@ -327,6 +327,52 @@ public class DocumentDAO {
 
         return documents;
     }
+    
+    
+ // Méthode pour recommander des documents basés sur Les types de documents empruntés par l'utilisateur et Exclure les documents déjà empruntés par l'utilisateu
+    public List<Document> recommanderDocuments(int userId) {
+        List<Document> recommandations = new ArrayList<>();
+        String sql = "SELECT d.* " +
+                     "FROM DOCUMENTS d " +
+                     "LEFT JOIN EMPRUNT e ON d.DOC_ID = e.DOC_ID AND e.USER_ID = ? " +
+                     "WHERE e.EMPRUNT_ID IS NULL " +
+                     "AND d.DOC_TYPE IN ( " +
+                     "    SELECT DISTINCT d2.DOC_TYPE " +
+                     "    FROM EMPRUNT e2 " +
+                     "    JOIN DOCUMENTS d2 ON e2.DOC_ID = d2.DOC_ID " +
+                     "    WHERE e2.USER_ID = ? " +
+                     ") " +
+                     "AND d.DOC_QUANTITE_DISPO > 0";
+
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setInt(1, userId);
+            pstmt.setInt(2, userId);
+            ResultSet rs = pstmt.executeQuery();
+
+            while (rs.next()) {
+                Document document = new Document(
+                    rs.getInt("DOC_ID"),
+                    rs.getString("DOC_TITRE"),
+                    rs.getString("DOC_AUTEUR"),
+                    rs.getString("DOC_DESCRIPTION"),
+                    rs.getString("DOC_DATE_PUBLICATION"),
+                    rs.getInt("DOC_QUANTITE"),
+                    rs.getInt("DOC_QUANTITE_DISPO"),
+                    rs.getString("DOC_TYPE")
+                );
+                recommandations.add(document);
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+            System.err.println("Erreur lors de la recommandation des documents : " + e.getMessage());
+        }
+
+        return recommandations;
+    }
+
 
 
 

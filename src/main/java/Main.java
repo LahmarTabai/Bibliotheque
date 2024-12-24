@@ -213,6 +213,7 @@ public class Main {
             System.out.println("4. Afficher les documents disponibles");
             System.out.println("5. Lister les documents empruntés");
             System.out.println("6. Rechercher un document par critères");
+            System.out.println("7. Recommandations personnalisées");
 
             System.out.println("0. Quitter");
 
@@ -271,6 +272,18 @@ public class Main {
                     
                 case 6: // Rechercher un document par critères
                 	rechercherDocuments(scanner, documentDAO);
+                    break;
+                    
+                case 7: // Afficher les recommandations
+                    List<Document> recommandations = documentDAO.recommanderDocuments(utilisateur.getId());
+                    if (recommandations.isEmpty()) {
+                        System.out.println("Aucune recommandation disponible pour le moment.");
+                    } else {
+                        System.out.println("\n===== Recommandations =====");
+                        for (Document doc : recommandations) {
+                            System.out.println(doc);
+                        }
+                    }
                     break;
 
 
