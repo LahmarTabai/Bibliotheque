@@ -50,6 +50,21 @@ public class Main {
 
                     Utilisateur utilisateur = utilisateurDAO.authentifier(email, password);
                     if (utilisateur != null) {
+                        // Vérification si le mot de passe doit être changé
+                        if ("test".equals(password) || !utilisateurDAO.aChangeMotDePasse(utilisateur.getId())) {
+                            System.out.println("Vous utilisez le mot de passe initial. Vous devez le changer.");
+                            System.out.print("Entrez votre nouveau mot de passe : ");
+                            String nouveauMotDePasse = scanner.nextLine();
+
+                            if (utilisateurDAO.modifierMotDePasse(utilisateur.getId(), nouveauMotDePasse)) {
+                                System.out.println("Votre mot de passe a été changé avec succès. Veuillez vous reconnecter.");
+                            } else {
+                                System.out.println("Erreur lors du changement de mot de passe. Réessayez.");
+                            }
+                            return; // Revenir au menu principal après le changement de mot de passe
+                        }
+
+                        // L'utilisateur peut accéder à son menu en fonction de son rôle
                         System.out.println("\nBienvenue, " + utilisateur.getNom() + " (" + utilisateur.getRole() + ")");
                         if (utilisateur.getRole().equalsIgnoreCase("ADMIN")) {
                             afficherMenuAdmin(scanner, utilisateurDAO, documentDAO, empruntDAO);
@@ -74,6 +89,7 @@ public class Main {
             }
         }
     }
+
 
     // Afficher les fiches techniques
     private static void afficherFichesTechniques(Scanner scanner, DocumentDAO documentDAO) {
@@ -194,6 +210,78 @@ public class Main {
             }
         }
     }
+    
+    
+    // methode qui gere les users
+    private static void gererUtilisateurs(Scanner scanner, UtilisateurDAO utilisateurDAO) {
+        while (true) {
+            System.out.println("\n===== Gestion des Utilisateurs =====");
+            System.out.println("1. Ajouter un utilisateur");
+            System.out.println("2. Lister les utilisateurs");
+            System.out.println("3. Modifier un utilisateur");
+            System.out.println("4. Supprimer un utilisateur");
+            System.out.println("0. Retour");
+
+            System.out.print("Votre choix : ");
+            int choix = scanner.nextInt();
+            scanner.nextLine(); // Consommer la ligne restante
+
+            switch (choix) {
+                case 1: // Ajouter un utilisateur
+                    System.out.print("Nom : ");
+                    String nom = scanner.nextLine();
+                    System.out.print("Prénom : ");
+                    String prenom = scanner.nextLine();
+                    System.out.print("Email : ");
+                    String email = scanner.nextLine();
+                    System.out.print("Téléphone : ");
+                    String telephone = scanner.nextLine();
+                    System.out.print("Rôle (ADMIN ou USER) : ");
+                    String role = scanner.nextLine();
+
+                    Utilisateur nouvelUtilisateur = new Utilisateur(0, nom, prenom, email, telephone, role, "test");
+                    int userId = utilisateurDAO.ajouterUtilisateurConsole(nouvelUtilisateur);
+                    if (userId != -1) {
+                        System.out.println("Utilisateur ajouté avec succès, ID : " + userId);
+                    }
+                    break;
+
+                case 2: // Lister les utilisateurs
+                    utilisateurDAO.afficherTousLesUtilisateurs();
+                    break;
+
+                case 3: // Modifier un utilisateur
+                    System.out.print("ID de l'utilisateur à modifier : ");
+                    int userIdModifier = scanner.nextInt();
+                    scanner.nextLine(); // Consommer la ligne restante
+                    Utilisateur utilisateurAModifier = utilisateurDAO.recupererUtilisateurParId(userIdModifier);
+                    if (utilisateurAModifier == null) {
+                        System.out.println("Utilisateur non trouvé !");
+                        break;
+                    }
+                    if (utilisateurDAO.modifierUtilisateurConsole(utilisateurAModifier, scanner)) {
+                        System.out.println("Utilisateur modifié avec succès.");
+                    }
+                    break;
+
+                case 4: // Supprimer un utilisateur
+                    System.out.print("ID de l'utilisateur à supprimer : ");
+                    int userIdSupprimer = scanner.nextInt();
+                    scanner.nextLine(); // Consommer la ligne restante
+                    if (utilisateurDAO.supprimerUtilisateurConsole(userIdSupprimer)) {
+                        System.out.println("Utilisateur supprimé avec succès.");
+                    }
+                    break;
+
+                case 0: // Retour
+                    return;
+
+                default:
+                    System.out.println("Choix invalide. Réessayez.");
+            }
+        }
+    }
+
 
 
 
@@ -318,7 +406,7 @@ public class Main {
 
             switch (choix) {
                 case 1: // Gérer les utilisateurs (implémentation future)
-                    System.out.println("Gestion des utilisateurs (non implémenté).");
+                	gererUtilisateurs(scanner, utilisateurDAO);
                     break;
 
                 case 2: // Lister les emprunts actifs

@@ -6,6 +6,7 @@ import entities.Utilisateur;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Scanner;
 import java.util.regex.Pattern;
 
 public class UtilisateurDAO {
@@ -26,7 +27,7 @@ public class UtilisateurDAO {
         }
     }
 
-    // Ajouter un nouvel utilisateur avec ROLE et PASSWORD
+ // Ajouter un nouvel utilisateur avec un mot de passe initial "test"
     public int ajouterUtilisateur(Utilisateur utilisateur) {
         if (!validerEmail(utilisateur.getEmail())) {
             System.out.println("Erreur : Email invalide.");
@@ -38,7 +39,7 @@ public class UtilisateurDAO {
             return -1; // Indiquer que l'utilisateur existe déjà
         }
 
-        String sql = "INSERT INTO UTILISATEUR (USER_NOM, USER_PRENOM, USER_EMAIL, USER_TEL, ROLE, PASSWORD) VALUES (?, ?, ?, ?, ?, ?)";
+        String sql = "INSERT INTO UTILISATEUR (USER_NOM, USER_PRENOM, USER_EMAIL, USER_TEL, ROLE, PASSWORD, PASSWORD_CHANGED) VALUES (?, ?, ?, ?, ?, ?, ?)";
         try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
 
@@ -47,13 +48,14 @@ public class UtilisateurDAO {
             pstmt.setString(3, utilisateur.getEmail());
             pstmt.setString(4, utilisateur.getTelephone());
             pstmt.setString(5, utilisateur.getRole()); // Ajouter le rôle (Admin/User)
-            pstmt.setString(6, utilisateur.getPassword()); // Ajouter le mot de passe
+            pstmt.setString(6, "test"); // Mot de passe initial
+            pstmt.setBoolean(7, false); // Mot de passe non modifié
 
             pstmt.executeUpdate();
             ResultSet generatedKeys = pstmt.getGeneratedKeys();
             if (generatedKeys.next()) {
                 int userId = generatedKeys.getInt(1);
-                System.out.println("Utilisateur ajouté avec succès, ID : " + userId);
+                System.out.println("Utilisateur ajouté avec succès, ID : " + userId + ". Le mot de passe initial est 'test'.");
                 return userId;
             }
 
@@ -64,7 +66,8 @@ public class UtilisateurDAO {
         return -1;
     }
 
-    // Authentifier un utilisateur
+
+ // Authentifier un utilisateur
     public Utilisateur authentifier(String email, String password) {
         String sql = "SELECT * FROM UTILISATEUR WHERE USER_EMAIL = ? AND PASSWORD = ?";
         try (Connection conn = DatabaseConnection.getConnection();
@@ -75,15 +78,23 @@ public class UtilisateurDAO {
             ResultSet rs = pstmt.executeQuery();
 
             if (rs.next()) {
-                return new Utilisateur(
-                        rs.getInt("USER_ID"),
-                        rs.getString("USER_NOM"),
-                        rs.getString("USER_PRENOM"),
-                        rs.getString("USER_EMAIL"),
-                        rs.getString("USER_TEL"),
-                        rs.getString("ROLE"),  // Charger le rôle
-                        null // Ne pas charger le mot de passe pour des raisons de sécurité
+                boolean passwordChanged = rs.getBoolean("PASSWORD_CHANGED");
+
+                Utilisateur utilisateur = new Utilisateur(
+                    rs.getInt("USER_ID"),
+                    rs.getString("USER_NOM"),
+                    rs.getString("USER_PRENOM"),
+                    rs.getString("USER_EMAIL"),
+                    rs.getString("USER_TEL"),
+                    rs.getString("ROLE"),
+                    null // Ne pas charger le mot de passe pour des raisons de sécurité
                 );
+
+                if (!passwordChanged) {
+                    System.out.println("Votre mot de passe est initial. Veuillez le changer immédiatement après connexion !");
+                }
+
+                return utilisateur;
             } else {
                 System.out.println("Email ou mot de passe incorrect.");
                 return null;
@@ -94,6 +105,7 @@ public class UtilisateurDAO {
             return null;
         }
     }
+
 
     // Récupérer un utilisateur par ID
     public Utilisateur recupererUtilisateurParId(int userId) {
@@ -175,6 +187,52 @@ public class UtilisateurDAO {
             return false;
         }
     }
+    
+ // Modifier le mot de passe de l'utilisateur
+    public boolean modifierMotDePasse(int userId, String nouveauMotDePasse) {
+        String sql = "UPDATE UTILISATEUR SET PASSWORD = ?, PASSWORD_CHANGED = TRUE WHERE USER_ID = ?";
+
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setString(1, nouveauMotDePasse);
+            pstmt.setInt(2, userId);
+
+            int rowsUpdated = pstmt.executeUpdate();
+            if (rowsUpdated > 0) {
+                System.out.println("Mot de passe modifié avec succès !");
+                return true;
+            } else {
+                System.out.println("Erreur lors de la modification du mot de passe.");
+                return false;
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+            System.err.println("Erreur lors de la modification du mot de passe : " + e.getMessage());
+            return false;
+        }
+    }
+
+    // Vérification si le mot de passe a été changé
+    public boolean aChangeMotDePasse(int userId) {
+        String sql = "SELECT PASSWORD_CHANGED FROM UTILISATEUR WHERE USER_ID = ?";
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setInt(1, userId);
+            ResultSet rs = pstmt.executeQuery();
+
+            if (rs.next()) {
+                return rs.getBoolean("PASSWORD_CHANGED");
+            }
+
+        } catch (SQLException e) {
+            System.err.println("Erreur lors de la vérification du mot de passe changé : " + e.getMessage());
+        }
+        return false; // Par défaut, considérer que le mot de passe n'a pas été changé
+    }
+
 
     // Lister tous les utilisateurs
     public List<Utilisateur> listerTousLesUtilisateurs() {
@@ -222,4 +280,70 @@ public class UtilisateurDAO {
         Pattern pattern = Pattern.compile(emailRegex);
         return pattern.matcher(email).matches();
     }
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+	//    Méthodes pour gerer les users
+    
+ // Ajouter un utilisateur
+    public int ajouterUtilisateurConsole(Utilisateur utilisateur) {
+        return ajouterUtilisateur(utilisateur); // Réutilise la méthode déjà existante
+    }
+
+    // Lister tous les utilisateurs
+    public void afficherTousLesUtilisateurs() {
+        List<Utilisateur> utilisateurs = listerTousLesUtilisateurs();
+        if (utilisateurs.isEmpty()) {
+            System.out.println("Aucun utilisateur trouvé.");
+        } else {
+            for (Utilisateur utilisateur : utilisateurs) {
+                System.out.println(utilisateur);
+            }
+        }
+    }
+
+    // Modifier un utilisateur (depuis la console)
+    public boolean modifierUtilisateurConsole(Utilisateur utilisateur, Scanner scanner) {
+        System.out.println("Nom actuel : " + utilisateur.getNom());
+        System.out.print("Nouveau nom (laissez vide pour ne pas changer) : ");
+        String nouveauNom = scanner.nextLine();
+        if (!nouveauNom.isEmpty()) utilisateur.setNom(nouveauNom);
+
+        System.out.println("Prénom actuel : " + utilisateur.getPrenom());
+        System.out.print("Nouveau prénom (laissez vide pour ne pas changer) : ");
+        String nouveauPrenom = scanner.nextLine();
+        if (!nouveauPrenom.isEmpty()) utilisateur.setPrenom(nouveauPrenom);
+
+        System.out.println("Email actuel : " + utilisateur.getEmail());
+        System.out.print("Nouvel email (laissez vide pour ne pas changer) : ");
+        String nouvelEmail = scanner.nextLine();
+        if (!nouvelEmail.isEmpty()) utilisateur.setEmail(nouvelEmail);
+
+        System.out.println("Téléphone actuel : " + utilisateur.getTelephone());
+        System.out.print("Nouveau téléphone (laissez vide pour ne pas changer) : ");
+        String nouveauTelephone = scanner.nextLine();
+        if (!nouveauTelephone.isEmpty()) utilisateur.setTelephone(nouveauTelephone);
+
+        System.out.println("Rôle actuel : " + utilisateur.getRole());
+        System.out.print("Nouveau rôle (ADMIN ou USER, laissez vide pour ne pas changer) : ");
+        String nouveauRole = scanner.nextLine();
+        if (!nouveauRole.isEmpty()) utilisateur.setRole(nouveauRole);
+
+        return modifierUtilisateur(utilisateur); // Réutilise la méthode DAO existante
+    }
+
+    // Supprimer un utilisateur
+    public boolean supprimerUtilisateurConsole(int userId) {
+        return supprimerUtilisateur(userId); // Réutilise la méthode DAO existante
+    }
+
+	//    
 }
