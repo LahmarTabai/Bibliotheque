@@ -41,40 +41,41 @@ public class Main {
             scanner.nextLine(); // Consommer le retour à la ligne
 
             switch (choix) {
-                case 1: // Connexion
-                    System.out.println("===== Connexion =====");
-                    System.out.print("Email : ");
-                    String email = scanner.nextLine();
-                    System.out.print("Mot de passe : ");
-                    String password = scanner.nextLine();
-
-                    Utilisateur utilisateur = utilisateurDAO.authentifier(email, password);
-                    if (utilisateur != null) {
-                        // Vérification si le mot de passe doit être changé
-                        if ("test".equals(password) || !utilisateurDAO.aChangeMotDePasse(utilisateur.getId())) {
-                            System.out.println("Vous utilisez le mot de passe initial. Vous devez le changer.");
-                            System.out.print("Entrez votre nouveau mot de passe : ");
-                            String nouveauMotDePasse = scanner.nextLine();
-
-                            if (utilisateurDAO.modifierMotDePasse(utilisateur.getId(), nouveauMotDePasse)) {
-                                System.out.println("Votre mot de passe a été changé avec succès. Veuillez vous reconnecter.");
-                            } else {
-                                System.out.println("Erreur lors du changement de mot de passe. Réessayez.");
-                            }
-                            return; // Revenir au menu principal après le changement de mot de passe
-                        }
-
-                        // L'utilisateur peut accéder à son menu en fonction de son rôle
-                        System.out.println("\nBienvenue, " + utilisateur.getNom() + " (" + utilisateur.getRole() + ")");
-                        if (utilisateur.getRole().equalsIgnoreCase("ADMIN")) {
-                            afficherMenuAdmin(scanner, utilisateurDAO, documentDAO, empruntDAO);
-                        } else if (utilisateur.getRole().equalsIgnoreCase("USER")) {
-                            afficherMenuUtilisateur(scanner, utilisateur, documentDAO, empruntDAO);
-                        }
-                    } else {
-                        System.out.println("Connexion échouée !");
-                    }
-                    break;
+	            case 1: // Connexion
+	                System.out.println("===== Connexion =====");
+	                System.out.print("Email : ");
+	                String email = scanner.nextLine();
+	                System.out.print("Mot de passe : ");
+	                String password = scanner.nextLine();
+	
+	                Utilisateur utilisateur = utilisateurDAO.authentifier(email, password);
+	                if (utilisateur != null) {
+	                    // Vérification si le mot de passe doit être changé
+	                    if ("test".equals(password) || !utilisateurDAO.aChangeMotDePasse(utilisateur.getId())) {
+	                        System.out.println("Vous utilisez le mot de passe initial. Vous devez le changer.");
+	                        System.out.print("Entrez votre nouveau mot de passe : ");
+	                        String nouveauMotDePasse = scanner.nextLine();
+	
+	                        if (utilisateurDAO.modifierMotDePasse(utilisateur.getId(), nouveauMotDePasse)) {
+	                            System.out.println("Votre mot de passe a été changé avec succès.");
+	                            utilisateur.setPassword(nouveauMotDePasse); // Mettre à jour le mot de passe localement
+	                        } else {
+	                            System.out.println("Erreur lors du changement de mot de passe. Réessayez.");
+	                        }
+	                        // Continuer vers le menu approprié après le changement de mot de passe
+	                    }
+	
+	                    // L'utilisateur peut accéder à son menu en fonction de son rôle
+	                    System.out.println("\nBienvenue, " + utilisateur.getNom() + " (" + utilisateur.getRole() + ")");
+	                    if (utilisateur.getRole().equalsIgnoreCase("ADMIN")) {
+	                        afficherMenuAdmin(scanner, utilisateurDAO, documentDAO, empruntDAO);
+	                    } else if (utilisateur.getRole().equalsIgnoreCase("USER")) {
+	                        afficherMenuUtilisateur(scanner, utilisateur, documentDAO, empruntDAO);
+	                    }
+	                } else {
+	                    System.out.println("Connexion échouée !");
+	                }
+	                break;
 
                 case 2: // Afficher les fiches techniques
                     afficherFichesTechniques(scanner, documentDAO);
@@ -240,14 +241,14 @@ public class Main {
                     String role = scanner.nextLine();
 
                     Utilisateur nouvelUtilisateur = new Utilisateur(0, nom, prenom, email, telephone, role, "test");
-                    int userId = utilisateurDAO.ajouterUtilisateurConsole(nouvelUtilisateur);
+                    int userId = utilisateurDAO.ajouterUtilisateur(nouvelUtilisateur);
                     if (userId != -1) {
                         System.out.println("Utilisateur ajouté avec succès, ID : " + userId);
                     }
                     break;
 
                 case 2: // Lister les utilisateurs
-                    utilisateurDAO.afficherTousLesUtilisateurs();
+                    utilisateurDAO.listerTousLesUtilisateurs();
                     break;
 
                 case 3: // Modifier un utilisateur
@@ -268,7 +269,7 @@ public class Main {
                     System.out.print("ID de l'utilisateur à supprimer : ");
                     int userIdSupprimer = scanner.nextInt();
                     scanner.nextLine(); // Consommer la ligne restante
-                    if (utilisateurDAO.supprimerUtilisateurConsole(userIdSupprimer)) {
+                    if (utilisateurDAO.supprimerUtilisateur(userIdSupprimer)) {
                         System.out.println("Utilisateur supprimé avec succès.");
                     }
                     break;
