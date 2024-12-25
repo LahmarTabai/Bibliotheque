@@ -159,13 +159,15 @@ public class Main {
         String auteur = scanner.nextLine();
         System.out.print("Description (ou laissez vide) : ");
         String description = scanner.nextLine();
+        System.out.print("Fiche Technique (ou laissez vide) : ");
+        String ficheTechnique = scanner.nextLine();
         System.out.print("Date de publication (AAAA-MM-JJ ou laissez vide) : ");
         String dateInput = scanner.nextLine();
         LocalDate datePublication = dateInput.isEmpty() ? null : LocalDate.parse(dateInput);
         System.out.print("Type (Livre, Magazine, Journal, Multimédia ou laissez vide) : ");
         String type = scanner.nextLine();
 
-        List<Document> documents = documentDAO.rechercherDocuments(titre, auteur, description, datePublication, type);
+        List<Document> documents = documentDAO.rechercherDocuments(titre, auteur, description, ficheTechnique, datePublication, type);
 
         if (documents.isEmpty()) {
             System.out.println("Aucun document trouvé avec les critères spécifiés.");
@@ -282,6 +284,137 @@ public class Main {
             }
         }
     }
+    
+    
+    
+    // Cette méthode gère l'ajout, la modification, la suppression, et l'affichage des documents
+    
+    private static void gererDocuments(Scanner scanner, DocumentDAO documentDAO) {
+        while (true) {
+            System.out.println("\n===== Gestion des Documents =====");
+            System.out.println("1. Ajouter un document");
+            System.out.println("2. Lister tous les documents");
+            System.out.println("3. Modifier un document");
+            System.out.println("4. Supprimer un document");
+            System.out.println("0. Retour");
+
+            System.out.print("Votre choix : ");
+            int choix = scanner.nextInt();
+            scanner.nextLine(); // Consommer la ligne restante
+
+            switch (choix) {
+                case 1: // Ajouter un document
+                    System.out.print("Titre : ");
+                    String titre = scanner.nextLine();
+                    System.out.print("Auteur : ");
+                    String auteur = scanner.nextLine();
+                    System.out.print("Description : ");
+                    String description = scanner.nextLine();
+                    System.out.print("Fiche Technique : ");
+                    String ficheTechnique = scanner.nextLine();
+                    System.out.print("Date de publication (JJ/MM/AAAA) : ");
+                    String datePublication = scanner.nextLine();
+                    System.out.print("Quantité : ");
+                    int quantite = scanner.nextInt();
+                    scanner.nextLine();
+                    System.out.print("Type (Livre, Magazine, Journal, Multimédia) : ");
+                    String type = scanner.nextLine();
+
+                    Document nouveauDocument = new Document(0, titre, auteur, description, ficheTechnique, datePublication, quantite, quantite, type);
+                    if (documentDAO.ajouterDocument(nouveauDocument)) {
+                        System.out.println("Document ajouté avec succès.");
+                    } else {
+                        System.out.println("Erreur lors de l'ajout du document.");
+                    }
+                    break;
+
+                case 2: // Lister tous les documents
+                    List<Document> documents = documentDAO.listerTousLesDocuments();
+                    if (documents.isEmpty()) {
+                        System.out.println("Aucun document trouvé.");
+                    } else {
+                        for (Document doc : documents) {
+                            System.out.println(doc);
+                        }
+                    }
+                    break;
+
+                case 3: // Modifier un document
+                    System.out.print("ID du document à modifier : ");
+                    int docId = scanner.nextInt();
+                    scanner.nextLine(); // Consommer la ligne restante
+
+                    // Recherche du document par ID
+                    Document documentAModifier = documentDAO.listerTousLesDocuments().stream()
+                                                           .filter(doc -> doc.getId() == docId)
+                                                           .findFirst()
+                                                           .orElse(null);
+
+                    if (documentAModifier == null) {
+                        System.out.println("Document non trouvé !");
+                        break;
+                    }
+
+                    // Modification des champs
+                    System.out.print("Titre actuel : " + documentAModifier.getTitre() + ". Nouveau titre (laissez vide pour ne pas changer) : ");
+                    String nouveauTitre = scanner.nextLine();
+                    if (!nouveauTitre.isEmpty()) documentAModifier.setTitre(nouveauTitre);
+
+                    System.out.print("Auteur actuel : " + documentAModifier.getAuteur() + ". Nouvel auteur (laissez vide pour ne pas changer) : ");
+                    String nouvelAuteur = scanner.nextLine();
+                    if (!nouvelAuteur.isEmpty()) documentAModifier.setAuteur(nouvelAuteur);
+
+                    System.out.print("Description actuelle : " + documentAModifier.getDescription() + ". Nouvelle description (laissez vide pour ne pas changer) : ");
+                    String nouvelleDescription = scanner.nextLine();
+                    if (!nouvelleDescription.isEmpty()) documentAModifier.setDescription(nouvelleDescription);
+
+                    System.out.print("Fiche Technique actuelle : " + documentAModifier.getFicheTechnique() + ". Nouvelle Fiche Technique (laissez vide pour ne pas changer) : ");
+                    String nouvelleFicheTechnique = scanner.nextLine();
+                    if (!nouvelleFicheTechnique.isEmpty()) documentAModifier.setFicheTechnique(nouvelleFicheTechnique);
+
+                    System.out.print("Quantité actuelle : " + documentAModifier.getQuantite() + ". Nouvelle quantité (entrez -1 pour ne pas changer) : ");
+                    int nouvelleQuantite = scanner.nextInt();
+                    scanner.nextLine(); // Consommer la ligne restante
+                    if (nouvelleQuantite >= 0) documentAModifier.setQuantite(nouvelleQuantite);
+
+                    System.out.print("Date de publication actuelle : " + documentAModifier.getDatePublication() + ". Nouvelle date (format JJ/MM/AAAA, laissez vide pour ne pas changer) : ");
+                    String nouvelleDate = scanner.nextLine();
+                    if (!nouvelleDate.isEmpty()) {
+                        try {
+                            documentAModifier.setDatePublication(nouvelleDate);
+                        } catch (IllegalArgumentException e) {
+                            System.out.println("Date invalide. Modification annulée pour ce champ.");
+                        }
+                    }
+
+                    // Appel à la méthode DAO pour sauvegarder les modifications
+                    if (documentDAO.modifierDocument(documentAModifier)) {
+                        System.out.println("Document modifié avec succès.");
+                    } else {
+                        System.out.println("Erreur lors de la modification du document.");
+                    }
+                    break;
+
+
+                case 4: // Supprimer un document
+                    System.out.print("ID du document à supprimer : ");
+                    int docIdSupprimer = scanner.nextInt();
+                    if (documentDAO.supprimerDocument(docIdSupprimer)) {
+                        System.out.println("Document supprimé avec succès.");
+                    } else {
+                        System.out.println("Erreur lors de la suppression du document.");
+                    }
+                    break;
+
+                case 0: // Retour
+                    return;
+
+                default:
+                    System.out.println("Choix invalide. Réessayez.");
+            }
+        }
+    }
+
 
 
 
@@ -399,6 +532,7 @@ public class Main {
             System.out.println("7. Rechercher un document par critères");
             System.out.println("8. Afficher les emprunts par utilisateur (Stats)");
             System.out.println("9. Afficher les types de documents les plus empruntés");
+            System.out.println("10. Gérer les documents");
             System.out.println("0. Quitter");
 
             System.out.print("Votre choix : ");
@@ -450,6 +584,11 @@ public class Main {
                 case 9:
                     afficherStatistiquesTypesDocuments(empruntDAO);
                     break;
+                    
+                case 10: // Gérer les documents
+                    gererDocuments(scanner, documentDAO);
+                    break;
+
 
 
                 case 0: // Quitter

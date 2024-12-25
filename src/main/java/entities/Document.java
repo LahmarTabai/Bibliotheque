@@ -1,17 +1,24 @@
 package entities;
 
+
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.LocalDate;
+import java.time.format.DateTimeParseException;
+
 public class Document {
     private int id;
     private String titre;
     private String auteur;
     private String description;
+    private String ficheTechnique;
     private String datePublication;
     private int quantite;
     private int quantiteDispo;
     private String type;
 
     // Constructeur complet
-    public Document(int id, String titre, String auteur, String description, String datePublication, int quantite, int quantiteDispo, String type) {
+    public Document(int id, String titre, String auteur, String description, String ficheTechnique, String datePublication, int quantite, int quantiteDispo, String type) {
         if (quantite < 0 || quantiteDispo < 0) {
             throw new IllegalArgumentException("Quantité et quantité disponible doivent être positives.");
         }
@@ -19,6 +26,7 @@ public class Document {
         this.titre = titre;
         this.auteur = auteur;
         this.description = description;
+        this.ficheTechnique = ficheTechnique;
         this.datePublication = datePublication;
         this.quantite = quantite;
         this.quantiteDispo = quantiteDispo;
@@ -67,16 +75,38 @@ public class Document {
     public void setDescription(String description) {
         this.description = description;
     }
+    
+    public String getFicheTechnique() {
+        return ficheTechnique;
+    }
+
+    public void setFicheTechnique(String ficheTechnique) {
+        this.ficheTechnique = ficheTechnique;
+    }
 
     public String getDatePublication() {
         return datePublication;
     }
 
     public void setDatePublication(String datePublication) {
-        if (datePublication == null || !datePublication.matches("\\d{4}-\\d{2}-\\d{2}")) {
-            throw new IllegalArgumentException("La date de publication doit être au format AAAA-MM-JJ.");
+        if (datePublication == null || !datePublication.matches("\\d{2}/\\d{2}/\\d{4}")) {
+            throw new IllegalArgumentException("La date de publication doit être au format JJ/MM/AAAA.");
         }
-        this.datePublication = datePublication;
+
+        try {
+            // Convertir la date entrée en LocalDate
+            DateTimeFormatter inputFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+            LocalDate localDate = LocalDate.parse(datePublication, inputFormatter);
+
+            // Ajouter une heure fictive pour l'enregistrement (par exemple, 00:00:00)
+            LocalDateTime localDateTime = localDate.atTime(0, 0, 0);
+
+            // Convertir au format attendu par MySQL (AAAA-MM-JJ HH:MM:SS)
+            DateTimeFormatter dbFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+            this.datePublication = localDateTime.format(dbFormatter);
+        } catch (DateTimeParseException e) {
+            throw new IllegalArgumentException("La date de publication est invalide, veuillez respecter le format JJ/MM/AAAA.");
+        }
     }
 
     public int getQuantite() {
@@ -116,6 +146,7 @@ public class Document {
                 ", titre='" + titre + '\'' +
                 ", auteur='" + auteur + '\'' +
                 ", description='" + description + '\'' +
+                ", Fiche Technique='" + ficheTechnique + '\'' +
                 ", datePublication='" + datePublication + '\'' +
                 ", quantite=" + quantite +
                 ", quantiteDispo=" + quantiteDispo +

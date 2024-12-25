@@ -6,9 +6,9 @@ public class Magazine extends Document {
     private String editeur; // Nom de l'éditeur
 
     // Constructeur complet avec validations
-    public Magazine(int id, String titre, String auteur, String description, String datePublication, 
+    public Magazine(int id, String titre, String auteur, String description, String ficheTechnique, String datePublication, 
                     int quantite, int quantiteDispo, String frequencePublication, int numeroParution, String editeur) {
-        super(id, titre, auteur, description, datePublication, quantite, quantiteDispo, "Magazine"); // Type fixé
+        super(id, titre, auteur, description, ficheTechnique, datePublication, quantite, quantiteDispo, "Magazine"); // Type fixé
         if (frequencePublication == null || frequencePublication.trim().isEmpty()) {
             throw new IllegalArgumentException("La fréquence de publication ne peut pas être vide ou null.");
         }

@@ -5,9 +5,9 @@ public class Multimedia extends Document {
     private int dureeTotale; // Durée totale en minutes
 
     // Constructeur complet avec validations
-    public Multimedia(int id, String titre, String auteur, String description, String datePublication, 
+    public Multimedia(int id, String titre, String auteur, String description, String ficheTechnique, String datePublication, 
                       int quantite, int quantiteDispo, String typeMultimedia, int dureeTotale) {
-        super(id, titre, auteur, description, datePublication, quantite, quantiteDispo, "Multimedia"); // Type fixé
+        super(id, titre, auteur, description, ficheTechnique, datePublication, quantite, quantiteDispo, "Multimedia"); // Type fixé
         if (typeMultimedia == null || typeMultimedia.trim().isEmpty()) {
             throw new IllegalArgumentException("Le type de multimédia ne peut pas être vide ou null.");
         }

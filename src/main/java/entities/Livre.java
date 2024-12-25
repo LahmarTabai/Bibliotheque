@@ -5,9 +5,9 @@ public class Livre extends Document {
     private String genreLitteraire;
 
     // Constructeur complet avec validations
-    public Livre(int id, String titre, String auteur, String description, String datePublication, 
+    public Livre(int id, String titre, String auteur, String description, String ficheTechnique, String datePublication, 
                  int quantite, int quantiteDispo, int nbPages, String genreLitteraire) {
-        super(id, titre, auteur, description, datePublication, quantite, quantiteDispo, "Livre"); // Type fixé
+        super(id, titre, auteur, description, ficheTechnique, datePublication, quantite, quantiteDispo, "Livre"); // Type fixé
         if (nbPages <= 0) {
             throw new IllegalArgumentException("Le nombre de pages doit être supérieur à 0.");
         }

@@ -4,9 +4,9 @@ public class Journal extends Document {
     private String datePublicationSpecifique;
 
     // Constructeur complet
-    public Journal(int id, String titre, String auteur, String description, String datePublication, 
+    public Journal(int id, String titre, String auteur, String description, String ficheTechnique, String datePublication, 
                    int quantite, int quantiteDispo, String datePublicationSpecifique) {
-        super(id, titre, auteur, description, datePublication, quantite, quantiteDispo, "Journal"); // Type fixé
+        super(id, titre, auteur, description, ficheTechnique, datePublication, quantite, quantiteDispo, "Journal"); // Type fixé
         if (datePublicationSpecifique == null || datePublicationSpecifique.isEmpty()) {
             throw new IllegalArgumentException("La date de publication spécifique ne peut pas être vide.");
         }

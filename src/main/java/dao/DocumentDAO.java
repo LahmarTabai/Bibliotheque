@@ -2,6 +2,8 @@ package dao;
 
 import java.sql.*;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
@@ -29,6 +31,7 @@ public class DocumentDAO {
                         rs.getString("DOC_TITRE"),
                         rs.getString("DOC_AUTEUR"),
                         rs.getString("DOC_DESCRIPTION"),
+                        rs.getString("DOC_FICHE_TECHNIQUE"),
                         rs.getString("DOC_DATE_PUBLICATION"),
                         rs.getInt("DOC_QUANTITE"),
                         rs.getInt("DOC_QUANTITE_DISPO"),
@@ -50,8 +53,8 @@ public class DocumentDAO {
             return false;
         }
 
-        String sql = "INSERT INTO DOCUMENTS (DOC_TITRE, DOC_AUTEUR, DOC_DESCRIPTION, DOC_DATE_PUBLICATION, DOC_QUANTITE, DOC_QUANTITE_DISPO, DOC_TYPE) " +
-                     "VALUES (?, ?, ?, ?, ?, ?, ?)";
+        String sql = "INSERT INTO DOCUMENTS (DOC_TITRE, DOC_AUTEUR, DOC_DESCRIPTION, DOC_FICHE_TECHNIQUE, DOC_DATE_PUBLICATION, DOC_QUANTITE, DOC_QUANTITE_DISPO, DOC_TYPE) " +
+                     "VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
 
         try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -59,10 +62,20 @@ public class DocumentDAO {
             pstmt.setString(1, document.getTitre());
             pstmt.setString(2, document.getAuteur());
             pstmt.setString(3, document.getDescription());
-            pstmt.setString(4, document.getDatePublication());
-            pstmt.setInt(5, document.getQuantite());
-            pstmt.setInt(6, document.getQuantiteDispo());
-            pstmt.setString(7, document.getType());
+            pstmt.setString(4, document.getFicheTechnique());
+
+            // Conversion de la date avant insertion
+            String datePublication = document.getDatePublication();
+            DateTimeFormatter inputFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+            DateTimeFormatter dbFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+            LocalDate localDate = LocalDate.parse(datePublication, inputFormatter);
+            LocalDateTime localDateTime = localDate.atTime(0, 0, 0);
+            String formattedDate = localDateTime.format(dbFormatter);
+            pstmt.setString(5, formattedDate); // Date formatée pour MySQL
+
+            pstmt.setInt(6, document.getQuantite());
+            pstmt.setInt(7, document.getQuantiteDispo());
+            pstmt.setString(8, document.getType());
 
             pstmt.executeUpdate();
             LOGGER.info("Document ajouté avec succès : " + document);
@@ -81,7 +94,7 @@ public class DocumentDAO {
             return false;
         }
 
-        String sql = "UPDATE DOCUMENTS SET DOC_TITRE = ?, DOC_AUTEUR = ?, DOC_DESCRIPTION = ?, DOC_DATE_PUBLICATION = ?, DOC_QUANTITE = ?, DOC_QUANTITE_DISPO = ?, DOC_TYPE = ? " +
+        String sql = "UPDATE DOCUMENTS SET DOC_TITRE = ?, DOC_AUTEUR = ?, DOC_DESCRIPTION = ?, DOC_FICHE_TECHNIQUE = ?, DOC_DATE_PUBLICATION = ?, DOC_QUANTITE = ?, DOC_QUANTITE_DISPO = ?, DOC_TYPE = ? " +
                      "WHERE DOC_ID = ?";
 
         try (Connection conn = DatabaseConnection.getConnection();
@@ -90,11 +103,12 @@ public class DocumentDAO {
             pstmt.setString(1, document.getTitre());
             pstmt.setString(2, document.getAuteur());
             pstmt.setString(3, document.getDescription());
-            pstmt.setString(4, document.getDatePublication());
-            pstmt.setInt(5, document.getQuantite());
-            pstmt.setInt(6, document.getQuantiteDispo());
-            pstmt.setString(7, document.getType());
-            pstmt.setInt(8, document.getId());
+            pstmt.setString(4, document.getFicheTechnique());
+            pstmt.setString(5, document.getDatePublication());
+            pstmt.setInt(6, document.getQuantite());
+            pstmt.setInt(7, document.getQuantiteDispo());
+            pstmt.setString(8, document.getType());
+            pstmt.setInt(9, document.getId());
 
             int rowsUpdated = pstmt.executeUpdate();
             if (rowsUpdated > 0) {
@@ -183,6 +197,7 @@ public class DocumentDAO {
                     rs.getString("DOC_TITRE"),
                     rs.getString("DOC_AUTEUR"),
                     rs.getString("DOC_DESCRIPTION"),
+                    rs.getString("DOC_FICHE_TECHNIQUE"),
                     rs.getString("DOC_DATE_PUBLICATION"),
                     rs.getInt("DOC_QUANTITE"),
                     rs.getInt("DOC_QUANTITE_DISPO"),
@@ -217,6 +232,7 @@ public class DocumentDAO {
                 System.out.println("Titre : " + rs.getString("DOC_TITRE"));
                 System.out.println("Auteur : " + rs.getString("DOC_AUTEUR"));
                 System.out.println("Description : " + rs.getString("DOC_DESCRIPTION"));
+                System.out.println("Description : " + rs.getString("DOC_FICHE_TECHNIQUE"));
                 System.out.println("Date de Publication : " + rs.getString("DOC_DATE_PUBLICATION"));
                 System.out.println("Quantité : " + rs.getInt("DOC_QUANTITE"));
                 System.out.println("Quantité Disponible : " + rs.getInt("DOC_QUANTITE_DISPO"));
@@ -244,6 +260,7 @@ public class DocumentDAO {
                     rs.getString("DOC_TITRE"),
                     rs.getString("DOC_AUTEUR"),
                     rs.getString("DOC_DESCRIPTION"),
+                    rs.getString("DOC_FICHE_TECHNIQUE"),
                     rs.getString("DOC_DATE_PUBLICATION"),
                     rs.getInt("DOC_QUANTITE"),
                     rs.getInt("DOC_QUANTITE_DISPO"),
@@ -260,7 +277,7 @@ public class DocumentDAO {
     
     
     // Méthode pour rechercher des documents en fonction de plusieurs critères
-    public List<Document> rechercherDocuments(String titre, String auteur, String description, LocalDate datePublication, String type) {
+    public List<Document> rechercherDocuments(String titre, String auteur, String description, String ficheTechnique, LocalDate datePublication, String type) {
         List<Document> documents = new ArrayList<>();
         StringBuilder sql = new StringBuilder("SELECT * FROM DOCUMENTS WHERE 1=1");
 
@@ -273,6 +290,9 @@ public class DocumentDAO {
         }
         if (description != null && !description.trim().isEmpty()) {
             sql.append(" AND DOC_DESCRIPTION LIKE ?");
+        }
+        if (ficheTechnique != null && !ficheTechnique.trim().isEmpty()) {
+            sql.append(" AND DOC_FICHE_TECHNIQUE LIKE ?");
         }
         if (datePublication != null) {
             sql.append(" AND DOC_DATE_PUBLICATION = ?");
@@ -296,6 +316,9 @@ public class DocumentDAO {
             if (description != null && !description.trim().isEmpty()) {
                 pstmt.setString(paramIndex++, "%" + description + "%");
             }
+            if (ficheTechnique != null && !ficheTechnique.trim().isEmpty()) {
+                pstmt.setString(paramIndex++, "%" + ficheTechnique + "%");
+            }
             if (datePublication != null) {
                 pstmt.setDate(paramIndex++, Date.valueOf(datePublication));
             }
@@ -312,6 +335,7 @@ public class DocumentDAO {
                     rs.getString("DOC_TITRE"),
                     rs.getString("DOC_AUTEUR"),
                     rs.getString("DOC_DESCRIPTION"),
+                    rs.getString("DOC_FICHE_TECHNIQUE"),
                     rs.getString("DOC_DATE_PUBLICATION"),
                     rs.getInt("DOC_QUANTITE"),
                     rs.getInt("DOC_QUANTITE_DISPO"),
@@ -357,6 +381,7 @@ public class DocumentDAO {
                     rs.getString("DOC_TITRE"),
                     rs.getString("DOC_AUTEUR"),
                     rs.getString("DOC_DESCRIPTION"),
+                    rs.getString("DOC_FICHE_TECHNIQUE"),
                     rs.getString("DOC_DATE_PUBLICATION"),
                     rs.getInt("DOC_QUANTITE"),
                     rs.getInt("DOC_QUANTITE_DISPO"),

@@ -3,6 +3,7 @@ package dao;
 import database.DatabaseConnection;
 import entities.Utilisateur;
 
+import java.io.Console;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
@@ -48,7 +49,7 @@ public class UtilisateurDAO {
             pstmt.setString(3, utilisateur.getEmail());
             pstmt.setString(4, utilisateur.getTelephone());
             pstmt.setString(5, utilisateur.getRole()); // Ajouter le rôle (Admin/User)
-            pstmt.setString(6, "test"); // Mot de passe initial
+            pstmt.setString(6, utils.PasswordUtils.hashPassword("test"));  // Mot de passe initial
             pstmt.setBoolean(7, false); // Mot de passe non modifié
 
             pstmt.executeUpdate();
@@ -69,68 +70,46 @@ public class UtilisateurDAO {
 
  // Authentifier un utilisateur
     public Utilisateur authentifier(String email, String password) {
-    String sql = "SELECT * FROM UTILISATEUR WHERE USER_EMAIL = ? AND PASSWORD = ?";
-    try (Connection conn = DatabaseConnection.getConnection();
-         PreparedStatement pstmt = conn.prepareStatement(sql)) {
+        String sql = "SELECT * FROM UTILISATEUR WHERE USER_EMAIL = ?";
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
-        pstmt.setString(1, email);
-        pstmt.setString(2, password);
-        ResultSet rs = pstmt.executeQuery();
+            pstmt.setString(1, email);
+            ResultSet rs = pstmt.executeQuery();
 
-        if (rs.next()) {
-            boolean passwordChanged = rs.getBoolean("PASSWORD_CHANGED");
+            if (rs.next()) {
+                String hashedPassword = rs.getString("PASSWORD");
+                if (utils.PasswordUtils.checkPassword(password, hashedPassword)) {
+                    boolean passwordChanged = rs.getBoolean("PASSWORD_CHANGED");
 
-            Utilisateur utilisateur = new Utilisateur(
-                rs.getInt("USER_ID"),
-                rs.getString("USER_NOM"),
-                rs.getString("USER_PRENOM"),
-                rs.getString("USER_EMAIL"),
-                rs.getString("USER_TEL"),
-                rs.getString("ROLE"),
-                null // Ne pas charger le mot de passe pour des raisons de sécurité
-            );
+                    Utilisateur utilisateur = new Utilisateur(
+                        rs.getInt("USER_ID"),
+                        rs.getString("USER_NOM"),
+                        rs.getString("USER_PRENOM"),
+                        rs.getString("USER_EMAIL"),
+                        rs.getString("USER_TEL"),
+                        rs.getString("ROLE"),
+                        null // Ne pas charger le mot de passe pour des raisons de sécurité
+                    );
 
-            if (!passwordChanged) {
-                System.out.println("Votre mot de passe est initial. Veuillez le changer immédiatement après connexion !");
-                
-                Scanner scanner = new Scanner(System.in);
-                String nouveauPassword = "";
-                String confirmationPassword = "";
-
-                while (true) {
-                    System.out.print("Entrez un nouveau mot de passe : ");
-                    nouveauPassword = scanner.nextLine();
-                    System.out.print("Confirmez le nouveau mot de passe : ");
-                    confirmationPassword = scanner.nextLine();
-
-                    if (nouveauPassword.equals(confirmationPassword)) {
-                        // Mise à jour du mot de passe dans la base de données
-                        String updateSql = "UPDATE UTILISATEUR SET PASSWORD = ?, PASSWORD_CHANGED = ? WHERE USER_ID = ?";
-                        try (PreparedStatement updatePstmt = conn.prepareStatement(updateSql)) {
-                            updatePstmt.setString(1, nouveauPassword);
-                            updatePstmt.setBoolean(2, true);
-                            updatePstmt.setInt(3, utilisateur.getId());
-                            updatePstmt.executeUpdate();
-                            System.out.println("Mot de passe changé avec succès !");
-                        }
-                        break;
-                    } else {
-                        System.out.println("Les mots de passe ne correspondent pas. Veuillez réessayer.");
+                    // Avertir si le mot de passe est initial et doit être changé
+                    if (!passwordChanged) {
+                        System.out.println("Votre mot de passe est initial. Veuillez le changer immédiatement après connexion !");
                     }
+
+                    return utilisateur; // Authentification réussie
                 }
             }
 
-            return utilisateur;
-        } else {
+            // Message générique pour éviter de révéler si l'email ou le mot de passe est incorrect
             System.out.println("Email ou mot de passe incorrect.");
-            return null;
+        } catch (SQLException e) {
+            System.err.println("Erreur lors de l'authentification : " + e.getMessage());
         }
 
-    } catch (SQLException e) {
-        System.err.println("Erreur lors de l'authentification : " + e.getMessage());
-        return null;
+        return null; // Retourner null en cas d'échec
     }
-}
+
 
 
     // Récupérer un utilisateur par ID
@@ -221,7 +200,7 @@ public class UtilisateurDAO {
         try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
-            pstmt.setString(1, nouveauMotDePasse);
+        	pstmt.setString(1, utils.PasswordUtils.hashPassword(nouveauMotDePasse));
             pstmt.setInt(2, userId);
 
             int rowsUpdated = pstmt.executeUpdate();
@@ -336,45 +315,64 @@ public class UtilisateurDAO {
         System.out.println("Email actuel : " + utilisateur.getEmail());
         System.out.print("Nouvel email (laissez vide pour ne pas changer) : ");
         String nouvelEmail = scanner.nextLine();
+        if (!nouvelEmail.isEmpty() && !validerEmail(nouvelEmail)) {
+            System.out.println("Email invalide. Veuillez réessayer.");
+            return false;
+        }
         if (!nouvelEmail.isEmpty()) utilisateur.setEmail(nouvelEmail);
 
         System.out.println("Téléphone actuel : " + utilisateur.getTelephone());
         System.out.print("Nouveau téléphone (laissez vide pour ne pas changer) : ");
         String nouveauTelephone = scanner.nextLine();
+        if (!nouveauTelephone.isEmpty() && !nouveauTelephone.matches("\\d{10}")) {
+            System.out.println("Numéro de téléphone invalide. Veuillez réessayer.");
+            return false;
+        }
         if (!nouveauTelephone.isEmpty()) utilisateur.setTelephone(nouveauTelephone);
 
         System.out.println("Rôle actuel : " + utilisateur.getRole());
         System.out.print("Nouveau rôle (ADMIN ou USER, laissez vide pour ne pas changer) : ");
         String nouveauRole = scanner.nextLine();
         if (!nouveauRole.isEmpty()) utilisateur.setRole(nouveauRole);
-        
-//        System.out.println("Password actuel : " + "******");
-//        System.out.print("Nouveau Password (laissez vide pour ne pas changer) : ");
-//        String nouveauPassword = scanner.nextLine();
-//        if (!nouveauPassword.isEmpty()) utilisateur.setPassword(nouveauPassword);
-        
+
         System.out.println("Password actuel : " + "******");
-        System.out.print("Nouveau Password (laissez vide pour ne pas changer) : ");
-        String nouveauPassword = scanner.nextLine();
+        Console console = System.console();
+        String nouveauPassword = "";
 
-        if (!nouveauPassword.isEmpty()) {
-            System.out.print("Confirmez le nouveau Password : ");
-            String confirmationPassword = scanner.nextLine();
-
-            if (nouveauPassword.equals(confirmationPassword)) {
-                utilisateur.setPassword(nouveauPassword);
-                System.out.println("Le mot de passe a été mis à jour avec succès.");
+        while (true) {
+            if (console != null) {
+                char[] passwordArray = console.readPassword("Nouveau Password (laissez vide pour ne pas changer) : ");
+                nouveauPassword = new String(passwordArray);
             } else {
-                System.out.println("Les mots de passe ne correspondent pas. Veuillez réessayer.");
-                // Optionnel : relancer la saisie ou afficher un menu
+                System.out.print("Nouveau Password (laissez vide pour ne pas changer) : ");
+                nouveauPassword = scanner.nextLine();
             }
-        } else {
-            System.out.println("Aucun changement du mot de passe.");
-        }
 
+            if (nouveauPassword.isEmpty()) {
+                System.out.println("Aucun changement du mot de passe.");
+                break;
+            }
+
+            String confirmationPassword = console != null
+                    ? new String(console.readPassword("Confirmez le nouveau Password : "))
+                    : scanner.nextLine();
+
+            if (!nouveauPassword.equals(confirmationPassword)) {
+                System.out.println("Les mots de passe ne correspondent pas. Veuillez réessayer.");
+            } else if (!utils.PasswordUtils.validerMotDePasse(nouveauPassword)) {
+                System.out.println("Mot de passe invalide. Il doit contenir au moins 8 caractères, une majuscule, une minuscule, un chiffre et un caractère spécial.");
+            } else {
+                String hashedPassword = utils.PasswordUtils.hashPassword(nouveauPassword);
+                utilisateur.setPassword(hashedPassword);
+                System.out.println("Le mot de passe a été mis à jour avec succès.");
+                break;
+            }
+        }
 
         return modifierUtilisateur(utilisateur); // Réutilise la méthode DAO existante
     }
+
+
 
 
 
