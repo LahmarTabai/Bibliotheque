@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Hôte : 127.0.0.1:3308
--- Généré le : lun. 23 déc. 2024 à 16:06
+-- Généré le : mar. 14 jan. 2025 à 12:34
 -- Version du serveur : 8.0.31
 -- Version de PHP : 8.0.26
 
@@ -49,7 +49,7 @@ CREATE TABLE IF NOT EXISTS `documents` (
 --
 
 INSERT INTO `documents` (`DOC_ID`, `DOC_TITRE`, `DOC_AUTEUR`, `DOC_DESCRIPTION`, `DOC_FICHE_TECHNIQUE`, `DOC_DATE_PUBLICATION`, `DOC_QUANTITE`, `DOC_QUANTITE_DISPO`, `DOC_TYPE`) VALUES
-(31, 'Seigneur des Anneaux', 'J.R.R. Tolkien', 'Un roman épique', 'Livre Aventure', '1954-07-29 00:00:00', 3, 2, 'Livre'),
+(31, 'Seigneur des Anneaux', 'J.R.R. Tolkien', 'Un roman épique', 'Livre Aventure', '1954-07-29 00:00:00', 3, 1, 'Livre'),
 (29, 'Star Wars Soundtrack', 'John Williams', 'Musique originale', NULL, '2024-12-17 00:00:00', 2, 1, 'Multimédia'),
 (30, 'Harry Potter', 'J.K. Rowling', 'Un livre de magie', 'Livre Fantastique', '1997-06-26 00:00:00', 5, 5, 'Livre'),
 (28, 'Le Monde', 'Rédaction Le Monde', 'Actualités', NULL, '2024-12-17 00:00:00', 2, 1, 'Journal'),
@@ -66,7 +66,12 @@ INSERT INTO `documents` (`DOC_ID`, `DOC_TITRE`, `DOC_AUTEUR`, `DOC_DESCRIPTION`,
 (36, 'The Economist', 'The Economist Group', 'Analyse économique', 'Hebdomadaire', '2024-06-10 00:00:00', 8, 8, 'Magazine'),
 (37, 'New York Times', 'NYT Team', 'Journal américain', 'Quotidien', '2024-06-17 00:00:00', 5, 5, 'Journal'),
 (38, 'Code Complete', 'Steve McConnell', 'Livre sur les meilleures pratiques de codage', 'Livre Technique', '2004-06-09 00:00:00', 6, 6, 'Livre'),
-(39, 'Interstellar Soundtrack', 'Hans Zimmer', 'Musique de film', 'CD', '2014-11-07 00:00:00', 3, 3, 'Multimédia');
+(39, 'Interstellar Soundtrack', 'Hans Zimmer', 'Musique de film', 'CD', '2014-11-07 00:00:00', 3, 3, 'Multimédia'),
+(1, 'Interstellar Soundtrack', 'Hans Zimmer', 'Musique de film', 'CD', '2014-11-07 00:00:00', 3, 3, 'Multimédia'),
+(5, 'Le Monde', 'Rédaction Le Monde', 'Actualités', NULL, '2024-12-17 00:00:00', 2, 1, 'Journal'),
+(3, 'Le Monde', 'Rédaction Le Monde', 'Actualités', NULL, '2024-12-17 00:00:00', 2, 1, 'Journal'),
+(15, 'Code Complete', 'Steve McConnell', 'Livre sur les meilleures pratiques de codage', 'Livre Technique', '2004-06-09 00:00:00', 6, 6, 'Livre'),
+(13, 'Seigneur des Anneaux', 'J.R.R. Tolkien', 'Un roman épique', 'Livre Aventure', '1954-07-29 00:00:00', 3, 2, 'Livre');
 
 --
 -- Déclencheurs `documents`
@@ -111,7 +116,7 @@ CREATE TABLE IF NOT EXISTS `emprunt` (
   PRIMARY KEY (`EMPRUNT_ID`),
   KEY `USER_ID` (`USER_ID`),
   KEY `DOC_ID` (`DOC_ID`)
-) ENGINE=MyISAM AUTO_INCREMENT=26 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=MyISAM AUTO_INCREMENT=39 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 --
 -- Déchargement des données de la table `emprunt`
@@ -130,7 +135,20 @@ INSERT INTO `emprunt` (`EMPRUNT_ID`, `USER_ID`, `DOC_ID`, `DATE_EMPRUNT`, `DATE_
 (21, 2, 5, '2024-06-05 00:00:00', NULL, '2024-07-05 00:00:00', '0.00', 'Actif'),
 (22, 3, 3, '2024-06-10 00:00:00', NULL, '2024-07-10 00:00:00', '0.00', 'Actif'),
 (23, 15, 13, '2024-12-23 00:00:00', NULL, '2024-12-19 00:00:00', '0.00', 'Actif'),
-(25, 15, 31, '2024-12-23 00:00:00', NULL, '2025-02-12 00:00:00', '0.00', 'Actif');
+(25, 15, 31, '2024-12-23 00:00:00', NULL, '2025-02-12 00:00:00', '0.00', 'Actif'),
+(26, 15, 29, '2024-12-23 00:00:00', NULL, '2025-02-12 00:00:00', '0.00', 'Actif'),
+(27, 15, 30, '2024-12-23 00:00:00', NULL, '2025-02-12 00:00:00', '0.00', 'Actif'),
+(28, 15, 24, '2024-12-23 00:00:00', NULL, '2024-12-19 00:00:00', '0.00', 'Actif'),
+(29, 9, 32, '2024-12-17 00:00:00', NULL, '2025-01-16 00:00:00', '0.00', 'Cloturee'),
+(30, 1, 33, '2024-06-01 00:00:00', NULL, '2024-06-30 00:00:00', '0.00', 'Actif'),
+(31, 15, 34, '2024-12-23 00:00:00', NULL, '2024-12-19 00:00:00', '0.00', 'Actif'),
+(32, -1, 35, '2024-12-17 00:00:00', NULL, '2025-01-16 00:00:00', '0.00', 'Actif'),
+(33, 15, 36, '2024-12-23 00:00:00', NULL, '2025-02-12 00:00:00', '0.00', 'Actif'),
+(34, -1, 37, '2024-12-17 00:00:00', NULL, '2025-01-16 00:00:00', '0.00', 'Actif'),
+(35, 9, 38, '2024-12-17 00:00:00', NULL, '2025-01-16 00:00:00', '0.00', 'Cloturee'),
+(36, 9, 39, '2024-12-17 00:00:00', NULL, '2025-01-16 00:00:00', '0.00', 'Cloturee'),
+(37, -1, 15, '2024-12-17 00:00:00', NULL, '2025-01-16 00:00:00', '0.00', 'Actif'),
+(38, 11, 31, '2024-12-23 00:00:00', NULL, '2026-01-15 00:00:00', '0.00', 'Actif');
 
 -- --------------------------------------------------------
 
@@ -235,24 +253,27 @@ CREATE TABLE IF NOT EXISTS `utilisateur` (
   `USER_TEL` varchar(15) DEFAULT NULL,
   `ROLE` enum('ADMIN','USER') DEFAULT 'USER',
   `PASSWORD` varchar(128) NOT NULL,
+  `PASSWORD_CHANGED` tinyint(1) DEFAULT '0',
   PRIMARY KEY (`USER_ID`),
   UNIQUE KEY `USER_EMAIL` (`USER_EMAIL`)
-) ENGINE=MyISAM AUTO_INCREMENT=19 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=MyISAM AUTO_INCREMENT=21 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 --
 -- Déchargement des données de la table `utilisateur`
 --
 
-INSERT INTO `utilisateur` (`USER_ID`, `USER_NOM`, `USER_PRENOM`, `USER_EMAIL`, `USER_TEL`, `ROLE`, `PASSWORD`) VALUES
-(9, 'Dupont', 'Jean', 'jean.dupont@example.com', '0612345678', 'USER', 'test'),
-(10, 'Martin', 'Sophie', 'sophie.martin@example.com', '0623456789', 'USER', 'test'),
-(11, 'lahmar', 'tabai', 'lahmartabai@yahoo.fr', '0612345678', 'USER', 'test'),
-(12, 'Malgras', 'Yasmin', 'MalgrasYasmin@yahoo.fr', '0623456789', 'USER', 'test'),
-(13, 'Kaouane', 'Irania', 'KaouaneIrania@yahoo.fr', '0634567890', 'USER', 'test'),
-(14, 'Leroy', 'Claire', 'claire.leroy@yahoo.fr', '0645678901', 'USER', 'test'),
-(15, 'Morel', 'Pierre', 'pierre.morel@yahoo.fr', '0656789012', 'USER', 'test'),
-(16, 'tabai', 'lahmar', 'tabai@yahoo.fr', '0600000000', 'ADMIN', 'test'),
-(17, 'Admin', 'System', 'admin@example.com', '0600000000', 'ADMIN', 'test');
+INSERT INTO `utilisateur` (`USER_ID`, `USER_NOM`, `USER_PRENOM`, `USER_EMAIL`, `USER_TEL`, `ROLE`, `PASSWORD`, `PASSWORD_CHANGED`) VALUES
+(9, 'Dupont', 'Jean', 'jean.dupont@example.com', '0612345678', 'USER', '$2a$10$3WqfsHHHng8vWLh3ymdRcu4Q.3WWVh.H2ugS0XbyGXD/D6aQdcF26', 0),
+(10, 'Martin', 'Sophie', 'sophie.martin@example.com', '0623456789', 'USER', '$2a$10$3WqfsHHHng8vWLh3ymdRcu4Q.3WWVh.H2ugS0XbyGXD/D6aQdcF26', 1),
+(11, 'lahmar', 'tabai', 'lahmartabai@yahoo.fr', '0612345678', 'USER', '$2a$10$3WqfsHHHng8vWLh3ymdRcu4Q.3WWVh.H2ugS0XbyGXD/D6aQdcF26', 0),
+(12, 'Malgras', 'Yasmin', 'MalgrasYasmin@yahoo.fr', '0623456789', 'USER', '$2a$10$3WqfsHHHng8vWLh3ymdRcu4Q.3WWVh.H2ugS0XbyGXD/D6aQdcF26', 0),
+(13, 'Kaouane', 'Irania', 'KaouaneIrania@yahoo.fr', '0634567890', 'USER', '$2a$10$3WqfsHHHng8vWLh3ymdRcu4Q.3WWVh.H2ugS0XbyGXD/D6aQdcF26', 0),
+(14, 'Leroy', 'Claire', 'claire.leroy@yahoo.fr', '0645678901', 'USER', '$2a$10$3WqfsHHHng8vWLh3ymdRcu4Q.3WWVh.H2ugS0XbyGXD/D6aQdcF26', 0),
+(15, 'Morel', 'Pierre', 'pierre.morel@yahoo.fr', '0656789012', 'USER', '$2a$10$3WqfsHHHng8vWLh3ymdRcu4Q.3WWVh.H2ugS0XbyGXD/D6aQdcF26', 0),
+(16, 'tabai', 'lahmar', 'tabai@yahoo.fr', '0600000000', 'ADMIN', '$2a$10$2DMHZaFS..QBxCyPh0s59eCuHrJigOzxSM6Ei3wwRzAoW2EgRlgPy', 1),
+(17, 'Admin', 'System', 'admin@example.com', '0600000000', 'ADMIN', '$2a$10$3WqfsHHHng8vWLh3ymdRcu4Q.3WWVh.H2ugS0XbyGXD/D6aQdcF26', 1),
+(19, 'tab', 'tab', 'tab@tab.fr', '0123456789', 'USER', '$2a$10$3WqfsHHHng8vWLh3ymdRcu4Q.3WWVh.H2ugS0XbyGXD/D6aQdcF26', 1),
+(20, 'naf', 'naf', 'naf@naf.fr', '010203060504', 'USER', '$2a$10$CCvEIvjrw8e2.rsyCUeZVeUM3F1OjJ8I7FH2Rys/Hiy1Vdz18bN12', 0);
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
