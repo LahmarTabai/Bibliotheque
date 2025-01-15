@@ -2,14 +2,24 @@ package dao;
 
 import database.DatabaseConnection;
 import entities.Livre;
+import utils.DateUtils;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+
 public class LivreDAO {
 
+    /**
+     * Ajoute un nouveau livre dans la table 'documents' (type='Livre') puis dans la table 'livres'.
+     * @param livre Le livre à insérer (doit avoir titre, auteur, nbPages, etc.)
+     * @return L'ID (DOC_ID) généré pour ce livre, ou -1 en cas d'erreur.
+     */
     public int ajouterLivre(Livre livre) {
         Connection conn = null;
         PreparedStatement pstmtDocuments = null;
@@ -32,15 +42,27 @@ public class LivreDAO {
             conn = DatabaseConnection.getConnection();
             conn.setAutoCommit(false);
 
-            // Insérer dans DOCUMENTS
-            String sqlDocuments = "INSERT INTO DOCUMENTS (DOC_TITRE, DOC_AUTEUR, DOC_DESCRIPTION, DOC_DATE_PUBLICATION, DOC_QUANTITE, DOC_QUANTITE_DISPO, DOC_TYPE) VALUES (?, ?, ?, ?, ?, ?, 'Livre')";
+            // ==============================
+            // Insérer dans la table DOCUMENTS
+            // ==============================
+            String sqlDocuments = 
+                "INSERT INTO DOCUMENTS (" +
+                "   DOC_TITRE, DOC_AUTEUR, DOC_DESCRIPTION, DOC_FICHE_TECHNIQUE, DOC_DATE_PUBLICATION, " +
+                "   DOC_QUANTITE, DOC_QUANTITE_DISPO, DOC_TYPE" +
+                ") VALUES (?, ?, ?, ?, ?, ?, ?, 'Livre')";
+
             pstmtDocuments = conn.prepareStatement(sqlDocuments, PreparedStatement.RETURN_GENERATED_KEYS);
             pstmtDocuments.setString(1, livre.getTitre());
             pstmtDocuments.setString(2, livre.getAuteur());
             pstmtDocuments.setString(3, livre.getDescription());
-            pstmtDocuments.setString(4, livre.getDatePublication());
-            pstmtDocuments.setInt(5, livre.getQuantite());
-            pstmtDocuments.setInt(6, livre.getQuantiteDispo());
+            pstmtDocuments.setString(4, livre.getFicheTechnique());
+
+            // --- Conversion de la date "JJ/MM/AAAA" en "YYYY-MM-DD HH:mm:ss" ---
+            String datePublicationMySQL = DateUtils.convertDateFormat(livre.getDatePublication());
+            pstmtDocuments.setString(5, datePublicationMySQL);
+
+            pstmtDocuments.setInt(6, livre.getQuantite());
+            pstmtDocuments.setInt(7, livre.getQuantiteDispo());
 
             pstmtDocuments.executeUpdate();
             generatedKeys = pstmtDocuments.getGeneratedKeys();
@@ -52,8 +74,12 @@ public class LivreDAO {
                 throw new SQLException("Échec de la récupération de l'ID généré pour le document.");
             }
 
-            // Insérer dans LIVRES
-            String sqlLivres = "INSERT INTO LIVRES (DOC_ID, NB_PAGES, GENRE_LITTERAIRE) VALUES (?, ?, ?)";
+            // ==============================
+            // Insérer dans la table LIVRES
+            // ==============================
+            String sqlLivres = 
+                "INSERT INTO LIVRES (DOC_ID, NB_PAGES, GENRE_LITTERAIRE) " +
+                "VALUES (?, ?, ?)";
             pstmtLivres = conn.prepareStatement(sqlLivres);
             pstmtLivres.setInt(1, docId);
             pstmtLivres.setInt(2, livre.getNbPages());
@@ -64,12 +90,14 @@ public class LivreDAO {
             System.out.println("Livre ajouté avec succès, ID : " + docId);
 
         } catch (SQLException e) {
-            try {
-                if (conn != null) conn.rollback();
-                System.err.println("Erreur : Transaction annulée. " + e.getMessage());
-            } catch (SQLException ex) {
-                System.err.println("Erreur lors du rollback : " + ex.getMessage());
+            if (conn != null) {
+                try {
+                    conn.rollback();
+                } catch (SQLException ex) {
+                    ex.printStackTrace();
+                }
             }
+            System.err.println("Erreur : Transaction annulée. " + e.getMessage());
         } catch (IllegalArgumentException e) {
             System.err.println("Erreur de validation des données : " + e.getMessage());
         } finally {
