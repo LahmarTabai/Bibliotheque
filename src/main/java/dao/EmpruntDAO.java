@@ -95,6 +95,67 @@ public class EmpruntDAO {
             return false;
         }
     }
+    
+    
+    
+    public Map<String, Object> recupererInfosPourRetour(int empruntId) {
+        // On veut : docId, docType, dureeDocument=0 (ou plus) si c'est un Multimédia
+        String sql = 
+            "SELECT e.DOC_ID, d.DOC_TYPE " +
+            "FROM EMPRUNT e " +
+            "JOIN DOCUMENTS d ON e.DOC_ID = d.DOC_ID " +
+            "WHERE e.EMPRUNT_ID = ?";
+
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setInt(1, empruntId);
+            try (ResultSet rs = pstmt.executeQuery()) {
+                if (!rs.next()) {
+                    // Aucune ligne => empruntId inconnu
+                    return null;
+                }
+
+                int docId = rs.getInt("DOC_ID");
+                String docType = rs.getString("DOC_TYPE");
+
+                // DUREE_DOCUMENT : à chercher dans la table MULTIMEDIA si docType = 'Multimédia'
+                int dureeDocument = 0;
+                if ("Multimédia".equalsIgnoreCase(docType) || "Multimedia".equalsIgnoreCase(docType)) {
+                    dureeDocument = recupererDureeMultimedia(conn, docId);
+                }
+
+                // Construire un petit Map pour renvoyer tout ça
+                Map<String, Object> infos = new HashMap<>();
+                infos.put("DOC_ID", docId);
+                infos.put("DOC_TYPE", docType);
+                infos.put("DUREE_DOCUMENT", dureeDocument);
+                return infos;
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    /**
+     * Cherche la durée totale dans la table MULTIMEDIA pour le docId donné.
+     * Renvoie 0 si pas trouvé (ou si docId n’existe pas).
+     */
+    private int recupererDureeMultimedia(Connection conn, int docId) throws SQLException {
+        String sql = "SELECT DUREE_TOTALE FROM MULTIMEDIA WHERE DOC_ID = ?";
+        try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setInt(1, docId);
+            try (ResultSet rs = pstmt.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt("DUREE_TOTALE");
+                }
+            }
+        }
+        return 0;
+    }
+
 
     // Retourner un document avec mise à jour des quantités et calcul des frais de retard
     public void retournerDocument(int empruntId, int docId, LocalDate dateRetour, String docType, int dureeDocument) {

@@ -12,6 +12,8 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -823,40 +825,88 @@ public class Main {
             scanner.nextLine(); // Consommer le retour à la ligne
 
             switch (choix) {
-                case 1: // Emprunter un document
-                    System.out.print("ID du document à emprunter : ");
-                    int docId = scanner.nextInt();
-                    scanner.nextLine(); // Consommer le retour à la ligne
-                    System.out.print("Entrez la date d'échéance (AAAA-MM-JJ) : ");
-                    String dateEcheance = scanner.nextLine();
+            case 1: // Emprunter un document
+                System.out.print("ID du document à emprunter : ");
+                int docId = scanner.nextInt();
+                scanner.nextLine(); // Consommer le retour à la ligne
 
-                    Emprunt emprunt = new Emprunt(0, utilisateur, docId, LocalDate.now(), LocalDate.parse(dateEcheance), "Actif");
-                    System.out.print("Type du document (Livre, Magazine, Multimédia, etc.) : ");
-                    String docType = scanner.nextLine();
+                System.out.print("Entrez la date d'échéance (JJ/MM/AAAA) : ");
+                String dateEcheanceStr = scanner.nextLine();
 
-                    if (empruntDAO.ajouterEmprunt(emprunt, docType)) {
-                        System.out.println("Emprunt ajouté avec succès !");
-                    } else {
-                        System.out.println("Échec de l'ajout de l'emprunt. Vérifiez les règles d'emprunt.");
-                    }
+                // Spécifier le pattern adapté
+                DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+                LocalDate echeance = null;
+                try {
+                    echeance = LocalDate.parse(dateEcheanceStr, formatter);
+                } catch (DateTimeParseException e) {
+                    System.out.println("Erreur : le format de la date est invalide. Utilisez JJ/MM/AAAA.");
+                    break; // Annule l'opération
+                }
+
+                Emprunt emprunt = new Emprunt(
+                    0,
+                    utilisateur,
+                    docId,
+                    LocalDate.now(),
+                    echeance,
+                    "Actif"
+                );
+
+                System.out.print("Type du document (Livre, Magazine, Multimédia, etc.) : ");
+                String docType = scanner.nextLine();
+
+                if (empruntDAO.ajouterEmprunt(emprunt, docType)) {
+                    System.out.println("Emprunt ajouté avec succès !");
+                } else {
+                    System.out.println("Échec de l'ajout de l'emprunt. Vérifiez les règles d'emprunt.");
+                }
+                break;
+
+
+//                case 2: // Retourner un document
+//                    System.out.print("ID de l'emprunt à retourner : ");
+//                    int empruntId = scanner.nextInt();
+//                    scanner.nextLine();
+//                    System.out.print("ID du document : ");
+//                    int docIdToReturn = scanner.nextInt();
+//                    scanner.nextLine();
+//                    System.out.print("Date de retour (AAAA-MM-JJ) : ");
+//                    LocalDate dateRetour = LocalDate.parse(scanner.nextLine());
+//                    System.out.print("Type du document : ");
+//                    String typeDocument = scanner.nextLine();
+//                    System.out.print("Durée totale du document (en minutes pour multimédia, sinon 0) : ");
+//                    int dureeDocument = scanner.nextInt();
+//
+//                    empruntDAO.retournerDocument(empruntId, docIdToReturn, dateRetour, typeDocument, dureeDocument);
+//                    break;
+                
+            case 2: // Retourner un document
+                System.out.print("ID de l'emprunt à retourner : ");
+                int empruntId = scanner.nextInt();
+                scanner.nextLine(); // Consommer la fin de ligne
+
+                // 1) Récupérer les infos nécessaires (DOC_ID, DOC_TYPE, dureeDocument) depuis la BDD
+                Map<String, Object> infosRetour = empruntDAO.recupererInfosPourRetour(empruntId);
+                if (infosRetour == null) {
+                    System.out.println("Aucun emprunt trouvé pour l'ID : " + empruntId);
                     break;
+                }
 
-                case 2: // Retourner un document
-                    System.out.print("ID de l'emprunt à retourner : ");
-                    int empruntId = scanner.nextInt();
-                    scanner.nextLine();
-                    System.out.print("ID du document : ");
-                    int docIdToReturn = scanner.nextInt();
-                    scanner.nextLine();
-                    System.out.print("Date de retour (AAAA-MM-JJ) : ");
-                    LocalDate dateRetour = LocalDate.parse(scanner.nextLine());
-                    System.out.print("Type du document : ");
-                    String typeDocument = scanner.nextLine();
-                    System.out.print("Durée totale du document (en minutes pour multimédia, sinon 0) : ");
-                    int dureeDocument = scanner.nextInt();
+                int docIdToReturn = (int) infosRetour.get("DOC_ID");
+                String doc_Type = (String) infosRetour.get("DOC_TYPE");
+                int dureeDocument = (int) infosRetour.get("DUREE_DOCUMENT"); // 0 si ce n’est pas un multimédia
 
-                    empruntDAO.retournerDocument(empruntId, docIdToReturn, dateRetour, typeDocument, dureeDocument);
-                    break;
+                // 2) Calcul de la date de retour : aujourd'hui
+                LocalDate dateRetour = LocalDate.now();
+                // (Optionnel) Afficher la date sous format dd/MM/yyyy
+                DateTimeFormatter frFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+                String dateRetourStr = dateRetour.format(frFormatter);
+                System.out.println("Date de retour utilisée : " + dateRetourStr);
+
+                // 3) Appeler la méthode pour retourner le document
+                empruntDAO.retournerDocument(empruntId, docIdToReturn, dateRetour, doc_Type, dureeDocument);
+                break;
+
 
                 case 3: // Voir mes emprunts actifs
                     empruntDAO.listerEmpruntsActifsParUtilisateur(utilisateur.getId());
