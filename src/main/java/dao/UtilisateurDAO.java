@@ -13,102 +13,104 @@ import java.util.regex.Pattern;
 public class UtilisateurDAO {
 
     // Vérifier si un utilisateur existe déjà
-    public boolean utilisateurExiste(String email) {
-        String sql = "SELECT 1 FROM UTILISATEUR WHERE USER_EMAIL = ?";
-        try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+	public boolean utilisateurExiste(String email) {
+	    String sql = "SELECT 1 FROM UTILISATEUR WHERE USER_EMAIL = ?";
+	    try (Connection conn = DatabaseConnection.getConnection();
+	         PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
-            pstmt.setString(1, email);
-            ResultSet rs = pstmt.executeQuery();
-            return rs.next(); // Retourne true si l'email existe
+	        pstmt.setString(1, email);
+	        ResultSet rs = pstmt.executeQuery();
+	        return rs.next(); // Retourne true si l'email existe déjà
 
-        } catch (SQLException e) {
-            System.err.println("Erreur lors de la vérification de l'existence de l'utilisateur : " + e.getMessage());
-            return false;
-        }
-    }
+	    } catch (SQLException e) {
+	        System.err.println("❌ Erreur lors de la vérification de l'existence de l'utilisateur : " + e.getMessage());
+	        return false;
+	    }
+	}
+
 
  // Ajouter un nouvel utilisateur avec un mot de passe initial "test"
-    public int ajouterUtilisateur(Utilisateur utilisateur) {
-        if (!validerEmail(utilisateur.getEmail())) {
-            System.out.println("Erreur : Email invalide.");
-            return -1;
-        }
+	public int ajouterUtilisateur(Utilisateur utilisateur) {
+	    if (!validerEmail(utilisateur.getEmail())) {
+	        System.out.println("❌ Email invalide.");
+	        return -1;
+	    }
 
-        if (utilisateurExiste(utilisateur.getEmail())) {
-            System.out.println("Erreur : L'utilisateur avec l'email " + utilisateur.getEmail() + " existe déjà.");
-            return -1; // Indiquer que l'utilisateur existe déjà
-        }
+	    if (utilisateurExiste(utilisateur.getEmail())) {
+	        System.out.println("❌ L'email " + utilisateur.getEmail() + " est déjà utilisé.");
+	        return -1;
+	    }
 
-        String sql = "INSERT INTO UTILISATEUR (USER_NOM, USER_PRENOM, USER_EMAIL, USER_TEL, ROLE, PASSWORD, PASSWORD_CHANGED) VALUES (?, ?, ?, ?, ?, ?, ?)";
-        try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+	    boolean passwordChanged = !utilisateur.getPassword().equals("test"); // Si différent de "test", pas besoin de forcer le changement
 
-            pstmt.setString(1, utilisateur.getNom());
-            pstmt.setString(2, utilisateur.getPrenom());
-            pstmt.setString(3, utilisateur.getEmail());
-            pstmt.setString(4, utilisateur.getTelephone());
-            pstmt.setString(5, utilisateur.getRole()); // Ajouter le rôle (Admin/User)
-            pstmt.setString(6, utils.PasswordUtils.hashPassword("test"));  // Mot de passe initial
-            pstmt.setBoolean(7, false); // Mot de passe non modifié
+	    String sql = "INSERT INTO UTILISATEUR (USER_NOM, USER_PRENOM, USER_EMAIL, USER_TEL, ROLE, PASSWORD, PASSWORD_CHANGED) VALUES (?, ?, ?, ?, ?, ?, ?)";
+	    try (Connection conn = DatabaseConnection.getConnection();
+	         PreparedStatement pstmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
 
-            pstmt.executeUpdate();
-            ResultSet generatedKeys = pstmt.getGeneratedKeys();
-            if (generatedKeys.next()) {
-                int userId = generatedKeys.getInt(1);
-                System.out.println("Utilisateur ajouté avec succès, ID : " + userId + ". Le mot de passe initial est 'test'.");
-                return userId;
-            }
+	        pstmt.setString(1, utilisateur.getNom());
+	        pstmt.setString(2, utilisateur.getPrenom());
+	        pstmt.setString(3, utilisateur.getEmail());
+	        pstmt.setString(4, utilisateur.getTelephone());
+	        pstmt.setString(5, "USER"); // Toujours USER
+	        pstmt.setString(6, utils.PasswordUtils.hashPassword(utilisateur.getPassword())); // Hash du mot de passe
+	        pstmt.setBoolean(7, passwordChanged); // false si "test", true sinon
 
-        } catch (SQLException e) {
-            System.err.println("Erreur lors de l'ajout de l'utilisateur : " + e.getMessage());
-            e.printStackTrace();
-        }
-        return -1;
-    }
+	        pstmt.executeUpdate();
+	        ResultSet generatedKeys = pstmt.getGeneratedKeys();
+	        if (generatedKeys.next()) {
+	            int userId = generatedKeys.getInt(1);
+	            System.out.println("✅ Compte créé avec succès, ID : " + userId);
+	            return userId;
+	        }
+
+	    } catch (SQLException e) {
+	        System.err.println("❌ Erreur lors de l'ajout de l'utilisateur : " + e.getMessage());
+	    }
+	    return -1;
+	}
+
+
 
 
  // Authentifier un utilisateur
-    public Utilisateur authentifier(String email, String password) {
-        String sql = "SELECT * FROM UTILISATEUR WHERE USER_EMAIL = ?";
-        try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+	public Utilisateur authentifier(String email, String password) {
+	    String sql = "SELECT * FROM UTILISATEUR WHERE USER_EMAIL = ?";
+	    try (Connection conn = DatabaseConnection.getConnection();
+	         PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
-            pstmt.setString(1, email);
-            ResultSet rs = pstmt.executeQuery();
+	        pstmt.setString(1, email);
+	        ResultSet rs = pstmt.executeQuery();
 
-            if (rs.next()) {
-                String hashedPassword = rs.getString("PASSWORD");
-                if (utils.PasswordUtils.checkPassword(password, hashedPassword)) {
-                    boolean passwordChanged = rs.getBoolean("PASSWORD_CHANGED");
+	        if (rs.next()) {
+	            String hashedPassword = rs.getString("PASSWORD");
+	            boolean passwordChanged = rs.getBoolean("PASSWORD_CHANGED");
 
-                    Utilisateur utilisateur = new Utilisateur(
-                        rs.getInt("USER_ID"),
-                        rs.getString("USER_NOM"),
-                        rs.getString("USER_PRENOM"),
-                        rs.getString("USER_EMAIL"),
-                        rs.getString("USER_TEL"),
-                        rs.getString("ROLE"),
-                        null // Ne pas charger le mot de passe pour des raisons de sécurité
-                    );
+	            if (utils.PasswordUtils.checkPassword(password, hashedPassword)) {
+	                Utilisateur utilisateur = new Utilisateur(
+	                        rs.getInt("USER_ID"),
+	                        rs.getString("USER_NOM"),
+	                        rs.getString("USER_PRENOM"),
+	                        rs.getString("USER_EMAIL"),
+	                        rs.getString("USER_TEL"),
+	                        rs.getString("ROLE"),
+	                        null // Ne jamais retourner le mot de passe
+	                );
 
-                    // Avertir si le mot de passe est initial et doit être changé
-                    if (!passwordChanged) {
-                        System.out.println("Votre mot de passe est initial. Veuillez le changer immédiatement après connexion !");
-                    }
+	                // Si l'utilisateur utilise encore "test", il doit changer son mot de passe
+	                if (!passwordChanged) {
+	                    System.out.println("⚠️ Vous utilisez le mot de passe par défaut 'test'. Veuillez le changer immédiatement !");
+	                }
 
-                    return utilisateur; // Authentification réussie
-                }
-            }
+	                return utilisateur;
+	            }
+	        }
+	        System.out.println("❌ Email ou mot de passe incorrect.");
+	    } catch (SQLException e) {
+	        System.err.println("❌ Erreur lors de l'authentification : " + e.getMessage());
+	    }
+	    return null;
+	}
 
-            // Message générique pour éviter de révéler si l'email ou le mot de passe est incorrect
-            System.out.println("Email ou mot de passe incorrect.");
-        } catch (SQLException e) {
-            System.err.println("Erreur lors de l'authentification : " + e.getMessage());
-        }
-
-        return null; // Retourner null en cas d'échec
-    }
 
 
 

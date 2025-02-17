@@ -36,6 +36,7 @@ public class Main {
             System.out.println("\n===== Menu Principal =====");
             System.out.println("1. Connexion");
             System.out.println("2. Afficher les fiches techniques des documents");
+            System.out.println("3. Créer un compte");
             System.out.println("0. Quitter");
 
             System.out.print("Votre choix : ");
@@ -82,6 +83,11 @@ public class Main {
                 case 2: // Afficher les fiches techniques
                     afficherFichesTechniques(scanner, documentDAO);
                     break;
+                    
+                case 3: // Créer un compte
+                    creerCompteUtilisateur(scanner, utilisateurDAO);
+                    break;
+
 
                 case 0: // Quitter
                     System.out.println("Au revoir !");
@@ -232,24 +238,28 @@ public class Main {
             scanner.nextLine(); // Consommer la ligne restante
 
             switch (choix) {
-                case 1: // Ajouter un utilisateur
-                    System.out.print("Nom : ");
-                    String nom = scanner.nextLine();
-                    System.out.print("Prénom : ");
-                    String prenom = scanner.nextLine();
-                    System.out.print("Email : ");
-                    String email = scanner.nextLine();
-                    System.out.print("Téléphone : ");
-                    String telephone = scanner.nextLine();
-                    System.out.print("Rôle (ADMIN ou USER) : ");
-                    String role = scanner.nextLine();
+	            case 1: // Ajouter un utilisateur
+	                System.out.print("Nom : ");
+	                String nom = scanner.nextLine();
+	                System.out.print("Prénom : ");
+	                String prenom = scanner.nextLine();
+	                System.out.print("Email : ");
+	                String email = scanner.nextLine();
+	                System.out.print("Téléphone : ");
+	                String telephone = scanner.nextLine();
+	                System.out.print("Rôle (ADMIN ou USER) : ");
+	                String role = scanner.nextLine();
+	
+	                Utilisateur nouvelUtilisateur = new Utilisateur(0, nom, prenom, email, telephone, role, "test"); // Toujours "test"
+	
+	                int userId = utilisateurDAO.ajouterUtilisateur(nouvelUtilisateur);
+	
+	                if (userId != -1) {
+	                    System.out.println("✅ Utilisateur ajouté avec succès, ID : " + userId);
+	                }
+	                break;
 
-                    Utilisateur nouvelUtilisateur = new Utilisateur(0, nom, prenom, email, telephone, role, "test");
-                    int userId = utilisateurDAO.ajouterUtilisateur(nouvelUtilisateur);
-                    if (userId != -1) {
-                        System.out.println("Utilisateur ajouté avec succès, ID : " + userId);
-                    }
-                    break;
+
 
                 case 2: // Lister les utilisateurs
                     utilisateurDAO.listerTousLesUtilisateurs();
@@ -795,6 +805,58 @@ public class Main {
         }
     }
 
+
+
+
+    
+    
+    private static void creerCompteUtilisateur(Scanner scanner, UtilisateurDAO utilisateurDAO) {
+        System.out.println("\n===== Création d'un Compte Utilisateur =====");
+
+        System.out.print("Nom : ");
+        String nom = scanner.nextLine();
+
+        System.out.print("Prénom : ");
+        String prenom = scanner.nextLine();
+
+        System.out.print("Email : ");
+        String email;
+        do {
+            email = scanner.nextLine();
+            if (utilisateurDAO.utilisateurExiste(email)) {
+                System.out.println("❌ Cet email est déjà utilisé. Veuillez en choisir un autre.");
+            }
+        } while (utilisateurDAO.utilisateurExiste(email));
+
+        System.out.print("Téléphone : ");
+        String telephone = scanner.nextLine();
+
+        String motDePasse;
+        String confirmationMotDePasse;
+
+        do {
+            System.out.print("Mot de passe : ");
+            motDePasse = scanner.nextLine();
+
+            System.out.print("Confirmez le mot de passe : ");
+            confirmationMotDePasse = scanner.nextLine();
+
+            if (!motDePasse.equals(confirmationMotDePasse)) {
+                System.out.println("❌ Les mots de passe ne correspondent pas. Réessayez.");
+            }
+        } while (!motDePasse.equals(confirmationMotDePasse));
+
+        // Création d'un nouvel utilisateur
+        Utilisateur nouvelUtilisateur = new Utilisateur(0, nom, prenom, email, telephone, "USER", motDePasse);
+
+        int userId = utilisateurDAO.ajouterUtilisateur(nouvelUtilisateur);
+
+        if (userId != -1) {
+            System.out.println("✅ Compte créé avec succès ! Vous pouvez maintenant vous connecter.");
+        } else {
+            System.out.println("❌ Erreur lors de la création du compte. Veuillez réessayer.");
+        }
+    }
 
 
 
